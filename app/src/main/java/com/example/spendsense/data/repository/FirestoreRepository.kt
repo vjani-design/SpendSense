@@ -2,7 +2,7 @@ package com.example.spendsense.data.repository
 
 import com.example.spendsense.model.Transaction
 import com.google.firebase.firestore.FirebaseFirestore
-
+import com.google.firebase.firestore.FieldValue
 class FirestoreRepository {
 
     private val db = FirebaseFirestore.getInstance()
@@ -91,6 +91,46 @@ class FirestoreRepository {
             }
             .addOnFailureListener {
                 onResult(0.0, "MONTHLY")
+            }
+    }
+    // ================= GROUPS =================
+
+    fun createGroup(userId: String, groupName: String, onSuccess: (String) -> Unit) {
+        val groupId = db.collection("groups").document().id
+        val code = groupId.take(6).uppercase()
+
+        val group = hashMapOf(
+            "id" to groupId,
+            "name" to groupName,
+            "code" to code,
+            "members" to listOf(userId)
+        )
+
+        db.collection("groups")
+            .document(groupId)
+            .set(group)
+            .addOnSuccessListener {
+                onSuccess(groupId)
+            }
+    }
+
+    fun joinGroup(userId: String, code: String, onResult: (String?) -> Unit) {
+        db.collection("groups")
+            .whereEqualTo("code", code)
+            .get()
+            .addOnSuccessListener { result ->
+                if (!result.isEmpty) {
+                    val doc = result.documents[0]
+                    val groupId = doc.id
+
+                    db.collection("groups")
+                        .document(groupId)
+                        .update("members", FieldValue.arrayUnion(userId))
+
+                    onResult(groupId)
+                } else {
+                    onResult(null)
+                }
             }
     }
 }
