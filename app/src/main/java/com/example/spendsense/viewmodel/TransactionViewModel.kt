@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import com.example.spendsense.data.repository.FirestoreRepository
 import com.example.spendsense.model.Transaction
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -23,8 +22,7 @@ class TransactionViewModel : ViewModel() {
 
     private val _income = MutableStateFlow(0.0)
     val income: StateFlow<Double> = _income
-    private var currentGroupId: String? = null
-    private var isFamilyMode: Boolean = false
+
     private val _expense = MutableStateFlow(0.0)
     val expense: StateFlow<Double> = _expense
 
@@ -46,16 +44,24 @@ class TransactionViewModel : ViewModel() {
     private val _budgetAlertEvent = MutableStateFlow(false)
     val budgetAlertEvent: StateFlow<Boolean> = _budgetAlertEvent
 
-    var isSharedMode = false
     private var lastAlertShownAt = 0L
 
-    // ================= GROUP =================
+    // ================= GROUP / MODE =================
+    var isSharedMode = false              // UI switch
+    private var currentGroupId: String? = null
+
     private fun getGroupId(): String {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return ""
-        return currentGroupId ?: uid
+
+        return if (isSharedMode) {
+            currentGroupId ?: uid   // fallback if no group joined
+        } else {
+            uid
+        }
     }
 
     // ================= LOAD =================
+
     fun loadAllData() {
         loadTransactions()
         loadBudget()
@@ -117,7 +123,6 @@ class TransactionViewModel : ViewModel() {
 
         repo.addTransaction(updated) {
             loadAllData()
-            recalculateBudgetAndAlert()
         }
     }
 
@@ -133,7 +138,6 @@ class TransactionViewModel : ViewModel() {
 
         repo.updateTransaction(updated) {
             loadAllData()
-            recalculateBudgetAndAlert()
         }
     }
 
@@ -143,7 +147,6 @@ class TransactionViewModel : ViewModel() {
 
         repo.deleteTransaction(groupId, id) {
             loadAllData()
-            recalculateBudgetAndAlert()
         }
     }
 
@@ -159,6 +162,38 @@ class TransactionViewModel : ViewModel() {
         repo.saveBudget(groupId, value, type.name)
 
         recalculateBudgetAndAlert()
+    }
+
+    // ================= GROUP FUNCTIONS =================
+
+    fun createGroup(groupName: String) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        repo.createGroup(uid, groupName) { groupId ->
+            currentGroupId = groupId
+            isSharedMode = true
+            loadAllData()
+        }
+    }
+
+    fun joinGroup(code: String) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        repo.joinGroup(uid, code) { groupId ->
+            if (groupId != null) {
+                currentGroupId = groupId
+                isSharedMode = true
+                loadAllData()
+            }
+        }
+    }
+
+    // ================= SESSION =================
+
+    fun setUserSession(uid: String) {
+        currentGroupId = uid   // default personal
+        isSharedMode = false
+        loadAllData()
     }
 
     // ================= CORE LOGIC =================
@@ -217,24 +252,5 @@ class TransactionViewModel : ViewModel() {
             }
 
         return categoryTotals.maxByOrNull { it.value }?.key ?: "No Data"
-    }
-    fun setUserSession(uid: String) {
-
-        FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(uid)
-            .get()
-            .addOnSuccessListener { doc ->
-
-                isFamilyMode = doc.getString("mode") == "FAMILY"
-
-                currentGroupId = if (isFamilyMode) {
-                    doc.getString("groupId") ?: uid
-                } else {
-                    uid
-                }
-
-                loadAllData()
-            }
     }
 }
