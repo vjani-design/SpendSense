@@ -1,79 +1,73 @@
 package com.example.spendsense.ui.components
 
-import androidx.compose.foundation.Canvas
+import android.graphics.Color
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.dp
-import com.example.spendsense.ui.theme.*
+import androidx.compose.ui.viewinterop.AndroidView
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.data.*
+import com.github.mikephil.charting.formatter.PercentFormatter
 
 @Composable
-fun IncomeExpensePieChart(
-    income: Float,
-    expense: Float
-) {
-    val total = (income + expense).takeIf { it > 0 } ?: 1f
+fun IncomeExpensePieChart(income: Float, expense: Float) {
 
-    val incomePercent = (income / total) * 100f
-    val expensePercent = (expense / total) * 100f
-
-    Column(
+    AndroidView(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+            .height(300.dp),
+        factory = { context ->
 
-        // 🎯 CENTERED PIE CHART
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
+            val chart = PieChart(context)
 
-            Canvas(modifier = Modifier.size(220.dp)) {
+            val entries = listOf(
+                PieEntry(income, "Income"),
+                PieEntry(expense, "Expense")
+            )
 
-                val incomeAngle = (income / total) * 360f
-                val expenseAngle = (expense / total) * 360f
-
-                // 💙 INCOME (Neon Blue)
-                drawArc(
-                    color = NeonBlue,
-                    startAngle = 0f,
-                    sweepAngle = incomeAngle,
-                    useCenter = true,
-                    size = Size(size.width, size.height)
+            val dataSet = PieDataSet(entries, "").apply {
+                colors = listOf(
+                    Color.parseColor("#4CAF50"), // Green
+                    Color.parseColor("#F44336")  // Red
                 )
 
-                // 💖 EXPENSE (Neon Pink)
-                drawArc(
-                    color = NeonPink,
-                    startAngle = incomeAngle,
-                    sweepAngle = expenseAngle,
-                    useCenter = true,
-                    size = Size(size.width, size.height)
-                )
+                valueTextSize = 14f
+                valueTextColor = Color.WHITE
+
+                // ✅ Better spacing for visibility
+                sliceSpace = 3f
+                valueLinePart1Length = 0.4f
+                valueLinePart2Length = 0.4f
             }
+
+            val data = PieData(dataSet)
+
+            // ✅ SHOW %
+            data.setValueFormatter(PercentFormatter(chart))
+            chart.setUsePercentValues(true)
+
+            chart.data = data
+
+            // ✅ REMOVE WHITE CENTER (MAKE FULL PIE)
+            chart.isDrawHoleEnabled = false
+
+            // ✅ FIX LABEL VISIBILITY
+            chart.setEntryLabelColor(Color.WHITE)
+            chart.setEntryLabelTextSize(12f)
+
+            // ✅ FIX LEGEND TEXT COLOR (BOTTOM LEFT)
+            chart.legend.textColor = Color.WHITE
+
+            // ✅ REMOVE DESCRIPTION
+            chart.description.isEnabled = false
+
+            // ✅ KEEP ROTATION (NO CHANGE)
+            chart.animateY(1000)
+
+            chart.invalidate()
+
+            chart
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 📊 LABELS
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Text(
-                text = "Income: ${incomePercent.toInt()}%",
-                color = NeonBlue
-            )
-
-            Text(
-                text = "Expense: ${expensePercent.toInt()}%",
-                color = NeonPink
-            )
-        }
-    }
+    )
 }

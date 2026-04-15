@@ -1,6 +1,7 @@
 package com.example.spendsense.ui.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,108 +12,149 @@ import androidx.navigation.NavController
 import com.example.spendsense.model.Transaction
 import com.example.spendsense.viewmodel.TransactionViewModel
 import com.example.spendsense.ui.theme.*
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddIncomeScreen(
     navController: NavController,
     transactionViewModel: TransactionViewModel
 ) {
 
+    var selectedDateMillis by remember {
+        mutableStateOf(System.currentTimeMillis())
+    }
+
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDateMillis
+    )
+
+    val formattedDate = remember(selectedDateMillis) {
+        SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+            .format(Date(selectedDateMillis))
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .neonBackground()   // 🌌 upgraded background
+            .appBackground()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center
     ) {
 
-        // ---------------- TITLE ----------------
         Text(
             text = "💰 Add Income",
-            color = White,
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // ---------------- DESCRIPTION ----------------
+        // DESCRIPTION
         TextField(
             value = description,
             onValueChange = { description = it },
             label = { Text("Description") },
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
-            )
+                .appGlass(),
+            colors = customTextFieldColors()
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // ---------------- AMOUNT ----------------
+        // AMOUNT
         TextField(
             value = amount,
             onValueChange = { amount = it },
             label = { Text("Amount") },
-            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
-            )
+                .appGlass(),
+            colors = customTextFieldColors()
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // ---------------- BUTTON ----------------
+        // DATE
+        Text(
+            text = "📅 $formattedDate",
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .clickable { showDatePicker = true }
+                .padding(8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // BUTTON
         Button(
             onClick = {
                 val amt = amount.toDoubleOrNull()
 
                 if (amt == null || amt <= 0.0) {
-                    Toast.makeText(context, "Enter a valid amount", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Enter valid amount", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 val tx = Transaction(
                     id = "",
-                    type = "income",
+                    type = "INCOME",
+                    category = "Income",
                     amount = amt,
-                    note = description
+                    note = description,
+                    timestamp = selectedDateMillis
                 )
 
-                transactionViewModel.add(tx)
+                scope.launch {
+                    transactionViewModel.add(tx)
 
-                Toast.makeText(context, "Income added 💰", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Income added 💰", Toast.LENGTH_SHORT).show()
 
-                navController.popBackStack()
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PurpleMain
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("Add Income", color = White)
+            Text(
+                text = "Add Income",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+
+        // DATE PICKER
+        if (showDatePicker) {
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    Button(onClick = {
+                        selectedDateMillis =
+                            datePickerState.selectedDateMillis ?: selectedDateMillis
+                        showDatePicker = false
+                    }) {
+                        Text("OK")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
     }
 }

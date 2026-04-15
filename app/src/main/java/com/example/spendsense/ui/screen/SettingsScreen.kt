@@ -17,14 +17,14 @@ fun SettingsScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .neonBackground()   // 🌌 FIX: use gradient background
+            .appBackground()
             .padding(16.dp)
     ) {
 
         // ---------------- TITLE ----------------
         Text(
             text = "⚙️ Settings",
-            color = White,
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineLarge
         )
 
@@ -37,15 +37,21 @@ fun SettingsScreen(navController: NavController) {
             label = { Text("Name") },
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
+                .appGlass(),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+
+                cursorColor = MaterialTheme.colorScheme.primary,
+
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
@@ -58,15 +64,21 @@ fun SettingsScreen(navController: NavController) {
             label = { Text("Currency (₹ / $ / €)") },
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
+                .appGlass(),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+
+                cursorColor = MaterialTheme.colorScheme.primary,
+
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
@@ -79,10 +91,13 @@ fun SettingsScreen(navController: NavController) {
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PurpleMain
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("Save Changes", color = White)
+            Text(
+                "Save Changes",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }

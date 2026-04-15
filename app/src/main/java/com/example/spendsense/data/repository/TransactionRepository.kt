@@ -11,18 +11,31 @@ class TransactionRepository {
     private val db = Firebase.firestore
     private val auth = FirebaseAuth.getInstance()
 
-    private fun uid(): String =
-        auth.currentUser?.uid ?: throw Exception("User not logged in")
+    // =========================
+    // GET USER ID
+    // =========================
+    private fun uid(): String {
+        return auth.currentUser?.uid
+            ?: throw Exception("User not logged in")
+    }
 
+    // =========================
+    // ADD TRANSACTION
+    // =========================
     suspend fun addTransaction(transaction: Transaction) {
         val ref = db.collection("users")
             .document(uid())
             .collection("transactions")
             .document()
 
-        ref.set(transaction.copy(id = ref.id)).await()
+        val data = transaction.copy(id = ref.id)
+
+        ref.set(data).await()
     }
 
+    // =========================
+    // GET ONCE
+    // =========================
     suspend fun getTransactions(): List<Transaction> {
         val snap = db.collection("users")
             .document(uid())
@@ -30,21 +43,60 @@ class TransactionRepository {
             .get()
             .await()
 
-        return snap.documents.mapNotNull {
-            it.toObject(Transaction::class.java)
+        return snap.documents.mapNotNull { doc ->
+            doc.toObject(Transaction::class.java)?.copy(id = doc.id)
         }
     }
 
+    // =========================
+    // REAL-TIME LISTENER
+    // =========================
     fun listenTransactions(onChange: (List<Transaction>) -> Unit) {
+        val user = auth.currentUser ?: return
+
         db.collection("users")
-            .document(uid())
+            .document(user.uid)
             .collection("transactions")
             .addSnapshotListener { snap, _ ->
-                val list = snap?.documents?.mapNotNull {
-                    it.toObject(Transaction::class.java)
-                } ?: emptyList()
+
+                if (snap == null) {
+                    onChange(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val list = snap.documents.mapNotNull { doc ->
+                    doc.toObject(Transaction::class.java)?.copy(id = doc.id)
+                }
 
                 onChange(list)
             }
+    }
+
+    // =========================
+    // DELETE TRANSACTION
+    // =========================
+    suspend fun deleteTransaction(id: String) {
+        val user = auth.currentUser ?: return
+
+        db.collection("users")
+            .document(user.uid)
+            .collection("transactions")
+            .document(id)
+            .delete()
+            .await()
+    }
+
+    // =========================
+    // UPDATE TRANSACTION
+    // =========================
+    suspend fun updateTransaction(transaction: Transaction) {
+        val user = auth.currentUser ?: return
+
+        db.collection("users")
+            .document(user.uid)
+            .collection("transactions")
+            .document(transaction.id)
+            .set(transaction)
+            .await()
     }
 }

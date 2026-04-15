@@ -1,4 +1,4 @@
-package com.example.spendsense.ui.screen
+package com.example.spendsense.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -15,9 +15,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.example.spendsense.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.spendsense.viewmodel.TransactionViewModel
 
 @Composable
 fun SignupScreen(navController: NavController) {
+
+    val transactionViewModel: TransactionViewModel = viewModel()
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -31,15 +35,15 @@ fun SignupScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .neonBackground()   // 🌌 upgraded background
+            .appBackground()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center
     ) {
 
         // ---------------- TITLE ----------------
         Text(
-            text = "💜 Create Account",
-            color = White,
+            text = "Create Account",
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -52,15 +56,20 @@ fun SignupScreen(navController: NavController) {
             label = { Text("Name") },
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
+                .appGlass(),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
@@ -73,15 +82,20 @@ fun SignupScreen(navController: NavController) {
             label = { Text("Email") },
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
+                .appGlass(),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
@@ -97,15 +111,20 @@ fun SignupScreen(navController: NavController) {
                 else PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(),
+                .appGlass(),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedTextColor = White,
-                unfocusedTextColor = White,
-                cursorColor = NeonPurple,
-                focusedIndicatorColor = NeonPink,
-                unfocusedIndicatorColor = White.copy(0.3f)
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
@@ -117,10 +136,10 @@ fun SignupScreen(navController: NavController) {
                 checked = showPassword,
                 onCheckedChange = { showPassword = it },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = PurpleMain
+                    checkedColor = MaterialTheme.colorScheme.primary
                 )
             )
-            Text("Show Password", color = White)
+            Text("Show Password", color = MaterialTheme.colorScheme.onBackground)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -150,9 +169,9 @@ fun SignupScreen(navController: NavController) {
                             )
                         )
 
-                        isLoading = false
-
-                        Toast.makeText(context, "Signup Successful 💜", Toast.LENGTH_SHORT).show()
+                        transactionViewModel.isSharedMode = false
+                        transactionViewModel.clearData()
+                        transactionViewModel.loadAllData()
 
                         navController.navigate("home") {
                             popUpTo("signup") { inclusive = true }
@@ -167,12 +186,12 @@ fun SignupScreen(navController: NavController) {
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PurpleMain
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
             Text(
                 text = if (isLoading) "Creating Account..." else "Signup",
-                color = White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
 
@@ -183,7 +202,7 @@ fun SignupScreen(navController: NavController) {
             onClick = { navController.navigate("login") },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Text("Already have an account? Login", color = NeonPurple)
+            Text("Already have an account? Login", color = MaterialTheme.colorScheme.primary)
         }
     }
 }

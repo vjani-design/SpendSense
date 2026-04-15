@@ -14,8 +14,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -42,40 +40,51 @@ android {
     }
 }
 
+
 dependencies {
-    // Core
+
+    // =========================
+    // CORE ANDROID + COMPOSE
+    // =========================
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // Compose BOM
     implementation(platform("androidx.compose:compose-bom:2025.12.00"))
-
-    // Compose UI
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material3:material3-window-size-class")
+    implementation("androidx.compose.material:material-icons-extended")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.9.7")
 
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.2.2"))
+    // =========================
+    // FIREBASE (FIXED + CLEAN)
+    // =========================
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+
+    // (OPTIONAL - only keep if you really use Realtime DB)
     implementation("com.google.firebase:firebase-database-ktx")
-
-
-    // Testing
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    // =========================
+    // TESTING
+    // =========================
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.12.00"))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
-    // Debug
+    // =========================
+    // DEBUG
+    // =========================
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

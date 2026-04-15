@@ -23,13 +23,24 @@ fun ProfileScreen(
     transactionViewModel: TransactionViewModel = viewModel()
 ) {
 
-    val transactions by transactionViewModel.transactions.collectAsState()
+    val isDark = ThemeManager.isDarkTheme
     val user = FirebaseAuth.getInstance().currentUser
+    val transactions by transactionViewModel.transactions.collectAsState()
+
+    // ✅ FIX: Proper reset when user becomes null
+    LaunchedEffect(user?.uid) {
+        if (user == null) {
+            transactionViewModel.isSharedMode = false
+            transactionViewModel.clearData()
+        } else {
+            transactionViewModel.loadAllData()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .neonBackground()
+            .appBackground()
             .padding(16.dp)
     ) {
 
@@ -37,14 +48,14 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .glass()
+                .appGlass()
                 .padding(16.dp)
         ) {
             Column {
 
                 Text(
                     text = "👤 Profile",
-                    color = White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -53,7 +64,7 @@ fun ProfileScreen(
 
                 Text(
                     text = user?.email ?: "No email found",
-                    color = White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     fontSize = 14.sp
                 )
             }
@@ -61,29 +72,43 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ---------------- HISTORY TITLE ----------------
+        // ---------------- THEME TOGGLE ----------------
+        Button(
+            onClick = { ThemeManager.toggleTheme() },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Text(
+                text = if (isDark) "Switch to Light Mode" else "Switch to Dark Mode",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
             text = "📜 Transaction History",
-            color = White,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ---------------- TRANSACTIONS LIST ----------------
+        // ---------------- TRANSACTIONS ----------------
         if (transactions.isEmpty()) {
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .glass(),
+                    .appGlass(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "No transactions yet 💡",
-                    color = White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
             }
 
@@ -97,10 +122,14 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
-                            .glass()
+                            .appGlass()
                             .padding(12.dp)
                     ) {
-                        TransactionItem(transaction = tx)
+                        TransactionItem(
+                            transaction = tx,
+                            onDelete = { },
+                            onEdit = { }
+                        )
                     }
                 }
             }
@@ -108,37 +137,41 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ---------------- SIGN OUT ----------------
+        // ---------------- SIGN OUT (FIXED) ----------------
         Button(
             onClick = {
+
                 FirebaseAuth.getInstance().signOut()
+
+                transactionViewModel.isSharedMode = false
+                transactionViewModel.clearData()
+
                 navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
+                    popUpTo(0) { inclusive = true }
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PurpleMain
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("Sign Out", color = White)
+            Text("Sign Out", color = MaterialTheme.colorScheme.onPrimary)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ---------------- BACK BUTTON ----------------
         Button(
             onClick = { navController.popBackStack() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PurpleMain
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("Back", color = White)
+            Text("Back", color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }

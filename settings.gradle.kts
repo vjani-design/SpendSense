@@ -12,15 +12,18 @@ pluginManagement {
     }
 
     plugins {
-        id("com.google.gms.google-services") version "4.4.1" // Firebase plugin
+        id("com.google.gms.google-services") version "4.4.1"
     }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        google()       // Required for Firebase & AndroidX
-        mavenCentral() // Required for Kotlin libraries
+        google()
+        mavenCentral()
+
+        // ✅ REQUIRED FOR MPANDROIDCHART
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

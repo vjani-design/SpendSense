@@ -2,36 +2,116 @@ package com.example.spendsense.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.spendsense.ui.theme.*
+import com.example.spendsense.viewmodel.TransactionViewModel
+import com.example.spendsense.ui.components.IncomeExpensePieChart
+import com.example.spendsense.ui.components.MonthlyBarChart
 
 @Composable
-fun AnalyticsScreen(navController: NavController) {
+fun AnalyticsScreen(
+    navController: NavController,
+    viewModel: TransactionViewModel = viewModel()
+) {
+
+    val transactions by viewModel.transactions.collectAsState()
+
+    val expenseList = remember(transactions) {
+        transactions.filter { it.type == "EXPENSE" }
+    }
+
+    val incomeList = remember(transactions) {
+        transactions.filter { it.type == "INCOME" }
+    }
+
+    val totalExpense = remember(expenseList) {
+        expenseList.sumOf { it.amount }
+    }
+
+    val totalIncome = remember(incomeList) {
+        incomeList.sumOf { it.amount }
+    }
+
+    val balance = totalIncome - totalExpense
+
+    val categoryMap = remember(expenseList) {
+        expenseList
+            .groupBy { it.category }
+            .mapValues { it.value.sumOf { t -> t.amount } }
+    }
+
+    val mostSpent = remember(categoryMap) {
+        categoryMap.maxByOrNull { it.value }?.key ?: "None"
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .neonBackground()   // 🌌 upgraded background
+            .appBackground()
             .padding(16.dp)
     ) {
 
-        // ---------------- TITLE ----------------
         Text(
             text = "📊 Analytics",
-            color = White,
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineLarge
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ---------------- CATEGORY CARD ----------------
+        // ---------------- SUMMARY ----------------
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+
+                Text(
+                    "💰 Income: $totalIncome",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    "💸 Expense: $totalExpense",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    "📊 Balance: $balance",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    "🔥 Top Category: $mostSpent",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Income vs Expense",
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        IncomeExpensePieChart(
+            income = totalIncome.toFloat(),
+            expense = totalExpense.toFloat()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Text(
             text = "Category-wise Spending",
-            color = White,
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -40,55 +120,55 @@ fun AnalyticsScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
-                .glass(),
+                .height(220.dp)
+                .appGlass(),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("📊 Pie Chart", color = White)
-                Spacer(Modifier.height(6.dp))
-                Text("Coming Soon", color = White.copy(0.7f))
+
+            if (categoryMap.isEmpty()) {
+                Text(
+                    "No data available",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            } else {
+                Column {
+                    categoryMap.forEach { entry ->
+                        Text(
+                            text = "${entry.key} : ${entry.value}",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ---------------- MONTHLY TREND ----------------
         Text(
             text = "Monthly Trend",
-            color = White,
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .glass(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("📈 Bar Chart", color = White)
-                Spacer(Modifier.height(6.dp))
-                Text("Coming Soon", color = White.copy(0.7f))
-            }
-        }
+        MonthlyBarChart(transactions)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ---------------- BACK BUTTON ----------------
         Button(
             onClick = { navController.popBackStack() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PurpleMain
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("Back", color = White)
+            Text(
+                "Back",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }
