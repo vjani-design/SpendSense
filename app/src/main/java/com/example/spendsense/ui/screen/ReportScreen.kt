@@ -27,7 +27,7 @@ fun ReportsScreen(
 ) {
 
     val context = LocalContext.current
-
+    val budget by transactionViewModel.budget.collectAsState()
     val transactions by transactionViewModel.transactions.collectAsState()
     val income by transactionViewModel.income.collectAsState()
     val expense by transactionViewModel.expense.collectAsState()
@@ -112,7 +112,7 @@ fun ReportsScreen(
                         income = income,
                         expense = expense,
                         balance = balance,
-                        budget = transactionViewModel.getBudgetValue(),
+                        budget = budget,
                         mostSpent = mostSpent,
                         pieBitmap = pieBitmap,   // ✅ NOW WORKS
                         barBitmap = barBitmap    // ✅ NOW WORKS

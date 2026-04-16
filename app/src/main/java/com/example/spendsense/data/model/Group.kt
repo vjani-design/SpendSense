@@ -4,5 +4,6 @@ data class Group(
     val id: String = "",
     val name: String = "",
     val code: String = "",
-    val members: List<String> = emptyList()
+    val createdBy: String = "", // ✅ ADD THIS
+    val members: Map<String, Boolean> = emptyMap()
 )

@@ -2,6 +2,7 @@ package com.example.spendsense.data.repository
 
 import com.example.spendsense.model.Transaction
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.spendsense.data.model.Group
 
 class FirestoreRepository {
 
@@ -94,19 +95,21 @@ class FirestoreRepository {
             }
     }
 
-    // ================= GROUPS (FIXED) =================
+    // ================= GROUPS =================
 
     fun createGroup(userId: String, groupName: String, onSuccess: (String) -> Unit) {
 
         val groupId = db.collection("groups").document().id
-        val code = groupId.take(6).uppercase()
+
+        // ✅ UNIQUE CODE (TIME + RANDOM)
+        val code = (System.currentTimeMillis().toString().takeLast(6) +
+                (100..999).random()).take(6)
 
         val group = hashMapOf(
             "id" to groupId,
             "name" to groupName,
             "code" to code,
-
-            // ✅ FIXED: map-based members (NOT list)
+            "createdBy" to userId, // ✅ CREATOR
             "members" to hashMapOf(userId to true)
         )
 
@@ -115,6 +118,9 @@ class FirestoreRepository {
             .set(group)
             .addOnSuccessListener {
                 onSuccess(groupId)
+            }
+            .addOnFailureListener {
+                onSuccess("") // fallback
             }
     }
 
@@ -130,7 +136,6 @@ class FirestoreRepository {
                     val doc = result.documents[0]
                     val groupId = doc.id
 
-                    // ✅ FIXED: add as map field
                     db.collection("groups")
                         .document(groupId)
                         .update("members.$userId", true)
@@ -144,6 +149,28 @@ class FirestoreRepository {
                 } else {
                     onResult(null)
                 }
+            }
+            .addOnFailureListener {
+                onResult(null)
+            }
+    }
+
+    fun getGroup(groupId: String, onResult: (Group?) -> Unit) {
+
+        db.collection("groups")
+            .document(groupId)
+            .get()
+            .addOnSuccessListener { doc ->
+
+                if (doc.exists()) {
+                    val group = doc.toObject(Group::class.java)
+                    onResult(group)
+                } else {
+                    onResult(null)
+                }
+            }
+            .addOnFailureListener {
+                onResult(null)
             }
     }
 }

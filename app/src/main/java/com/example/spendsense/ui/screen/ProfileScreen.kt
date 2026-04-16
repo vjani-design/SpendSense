@@ -25,7 +25,8 @@ fun ProfileScreen(
     navController: NavController,
     transactionViewModel: TransactionViewModel = viewModel()
 ) {
-
+    val currentGroupName by transactionViewModel.currentGroupName.collectAsState()
+    val currentGroupCode by transactionViewModel.currentGroupCode.collectAsState()
     val isDark = ThemeManager.isDarkTheme
     val user = FirebaseAuth.getInstance().currentUser
 
@@ -134,18 +135,14 @@ fun ProfileScreen(
 
                             if (enabled) {
 
-                                val groupId = transactionViewModel.getCurrentGroupId()
+                                val groupId = transactionViewModel.currentGroupId
 
-                                if (!groupId.isNullOrEmpty()) {
-
+                                if (groupId.isNotEmpty()) {
                                     transactionViewModel.setSharedMode(true, groupId)
-
                                 } else {
-
                                     scope.launch {
                                         snackbarHostState.showSnackbar("Create or join a group first")
                                     }
-
                                     return@Switch
                                 }
 
@@ -256,6 +253,50 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
+
+            // ---------------- GROUP INFO DISPLAY ----------------
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .appGlass()
+                    .padding(12.dp)
+            ) {
+                Column {
+
+                    Text(
+                        text = "👥 Your Group",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Name: ${currentGroupName.ifEmpty { "Loading..." }}",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Invite Code",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    )
+
+                    Card {
+                        Text(
+                            text = currentGroupCode.ifEmpty { "Loading..." },
+                            modifier = Modifier.padding(12.dp),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // ---------------- TRANSACTIONS ----------------
             Text(
