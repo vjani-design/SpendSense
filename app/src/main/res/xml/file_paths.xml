@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
 
-    <!-- CSV export folder -->
+    <!-- Cache files (PDF temporary storage) -->
+    <cache-path
+        name="cache"
+        path="." />
+
+    <!-- External app-specific files -->
     <external-files-path
-        name="documents"
-        path="Documents/" />
+        name="external_files"
+        path="." />
 
 </paths>

@@ -12,20 +12,24 @@ import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import java.util.*
 
+
 @Composable
-fun MonthlyBarChart(transactions: List<Transaction>) {
+fun MonthlyBarChart(
+    transactions: List<Transaction>,
+    modifier: Modifier = Modifier,
+    onChartReady: (BarChart) -> Unit = {}   // ✅ ADD THIS
+) {
 
     AndroidView(
-        modifier = Modifier
+        modifier = modifier   // ✅ USE THIS (instead of fixed modifier)
             .fillMaxWidth()
             .height(320.dp),
         factory = { context ->
 
             val chart = BarChart(context)
-
+            onChartReady(chart)   // ✅ ADD THIS
             if (transactions.isEmpty()) return@AndroidView chart
 
-            // ✅ GROUP BY MONTH
             val grouped = transactions.groupBy { t ->
                 val cal = Calendar.getInstance()
                 cal.timeInMillis = t.timestamp
@@ -47,15 +51,14 @@ fun MonthlyBarChart(transactions: List<Transaction>) {
                 expenseEntries.add(BarEntry(month.toFloat(), expense.toFloat()))
             }
 
-            // ✅ DATASETS
             val incomeDataSet = BarDataSet(incomeEntries, "Income").apply {
-                color = Color.parseColor("#4CAF50") // Green
+                color = Color.parseColor("#4CAF50")
                 valueTextColor = Color.WHITE
                 valueTextSize = 10f
             }
 
             val expenseDataSet = BarDataSet(expenseEntries, "Expense").apply {
-                color = Color.parseColor("#F44336") // Red
+                color = Color.parseColor("#F44336")
                 valueTextColor = Color.WHITE
                 valueTextSize = 10f
             }
@@ -70,12 +73,10 @@ fun MonthlyBarChart(transactions: List<Transaction>) {
 
             chart.data = barData
 
-            // ✅ GROUP BARS SIDE BY SIDE
             chart.xAxis.axisMinimum = 0f
             chart.xAxis.axisMaximum = grouped.size + 1f
             chart.groupBars(0f, groupSpace, barSpace)
 
-            // ✅ AXIS SETTINGS
             chart.xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 granularity = 1f

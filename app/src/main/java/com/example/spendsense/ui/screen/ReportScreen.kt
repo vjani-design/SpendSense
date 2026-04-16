@@ -1,6 +1,6 @@
 package com.example.spendsense.ui.screens
 
-import android.content.Intent
+import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,11 +10,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.example.spendsense.ui.theme.*
-import com.example.spendsense.utils.CsvExporter
+import com.example.spendsense.utils.ChartCaptureUtils
+import com.example.spendsense.utils.PdfReportGenerator
 import com.example.spendsense.viewmodel.TransactionViewModel
+import com.example.spendsense.ui.components.IncomeExpensePieChart
+import com.example.spendsense.ui.components.MonthlyBarChart
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.charts.PieChart
 
 @Composable
 fun ReportsScreen(
@@ -22,12 +26,15 @@ fun ReportsScreen(
     transactionViewModel: TransactionViewModel
 ) {
 
+    val context = LocalContext.current
+
     val transactions by transactionViewModel.transactions.collectAsState()
     val income by transactionViewModel.income.collectAsState()
     val expense by transactionViewModel.expense.collectAsState()
     val balance by transactionViewModel.balance.collectAsState()
 
-    val context = LocalContext.current
+    var pieChartView by remember { mutableStateOf<PieChart?>(null) }
+    var barChartView by remember { mutableStateOf<BarChart?>(null) }
 
     val mostSpent = remember(transactions) {
         transactionViewModel.getMostSpentCategory()
@@ -37,109 +44,102 @@ fun ReportsScreen(
         modifier = Modifier
             .fillMaxSize()
             .appBackground()
-            .verticalScroll(rememberScrollState())   // ✅ FIX ADDED HERE
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
 
-        // ---------------- TITLE ----------------
-        Text(
-            text = "Reports",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
+        Text("Reports", style = MaterialTheme.typography.headlineMedium)
+
+        Spacer(Modifier.height(16.dp))
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Income: ₹$income")
+                Text("Expense: ₹$expense")
+                Text("Balance: ₹$balance")
+                Text("Most Spent: $mostSpent")
+                Text("Transactions: ${transactions.size}")
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // ================= PIE CHART =================
+        IncomeExpensePieChart(
+            income = income.toFloat(),
+            expense = expense.toFloat(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp),
+            onChartReady = {
+                pieChartView = it
+            }
         )
 
         Spacer(Modifier.height(16.dp))
 
-        // ---------------- SUMMARY CARD ----------------
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-
-            Column(modifier = Modifier.padding(16.dp)) {
-
-                Text(
-                    "Total Transactions: ${transactions.size}",
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Text(
-                    "Income: ₹$income",
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Text(
-                    "Expense: ₹$expense",
-                    color = MaterialTheme.colorScheme.error
-                )
-
-                Text(
-                    "Balance: ₹$balance",
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    "Most Spent: $mostSpent",
-                    color = MaterialTheme.colorScheme.error
-                )
+        // ================= BAR CHART =================
+        MonthlyBarChart(
+            transactions = transactions,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp),
+            onChartReady = {
+                barChartView = it
             }
-        }
+        )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(Modifier.height(20.dp))
 
-        // ---------------- EXPORT BUTTON ----------------
+        // ================= DOWNLOAD PDF =================
         Button(
             onClick = {
 
-                val file = CsvExporter.exportToFile(context, transactions)
+                try {
 
-                if (file != null) {
-
-                    val uri = FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.provider",
-                        file
-                    )
-
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/csv"
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    // 🔥 CAPTURE BITMAPS HERE (THIS WAS MISSING)
+                    val pieBitmap: Bitmap? = pieChartView?.let {
+                        ChartCaptureUtils.captureView(it)
                     }
 
-                    context.startActivity(
-                        Intent.createChooser(intent, "Share CSV Report")
+                    val barBitmap: Bitmap? = barChartView?.let {
+                        ChartCaptureUtils.captureView(it)
+                    }
+
+                    val uri = PdfReportGenerator.generateReport(
+                        context = context,
+                        transactions = transactions,
+                        income = income,
+                        expense = expense,
+                        balance = balance,
+                        budget = transactionViewModel.getBudgetValue(),
+                        mostSpent = mostSpent,
+                        pieBitmap = pieBitmap,   // ✅ NOW WORKS
+                        barBitmap = barBitmap    // ✅ NOW WORKS
                     )
 
-                } else {
-                    Toast.makeText(context, "Export failed", Toast.LENGTH_SHORT).show()
+                    if (uri != null) {
+                        Toast.makeText(context, "PDF saved in Downloads", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "PDF failed", Toast.LENGTH_LONG).show()
+                    }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Toast.makeText(context, "Error creating PDF", Toast.LENGTH_LONG).show()
                 }
+
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Share Report")
+            Text("Download PDF")
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(12.dp))
 
-        // ---------------- BACK BUTTON ----------------
         Button(
             onClick = { navController.popBackStack() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            )
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Back")
         }

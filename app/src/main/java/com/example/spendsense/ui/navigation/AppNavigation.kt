@@ -21,6 +21,7 @@ import com.example.spendsense.viewmodel.TransactionViewModel
 
 @Composable
 fun AppNavigation() {
+
     val navController = rememberNavController()
     val transactionViewModel: TransactionViewModel = viewModel()
 

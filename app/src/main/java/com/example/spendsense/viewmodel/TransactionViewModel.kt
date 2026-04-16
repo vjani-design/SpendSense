@@ -266,4 +266,17 @@ class TransactionViewModel : ViewModel() {
     fun getCurrentGroupId(): String? {
         return currentGroupId
     }
+    // ================= REPORT HELPERS =================
+
+    fun getTotalIncome(): Double = _income.value
+
+    fun getTotalExpense(): Double = _expense.value
+
+    fun getBalance(): Double = _balance.value
+
+    fun getTransactionCount(): Int = _transactions.value.size
+
+    fun getBudgetValue(): Double = _budget.value
+
+    fun getMostSpentCategoryName(): String = getMostSpentCategory()
 }
