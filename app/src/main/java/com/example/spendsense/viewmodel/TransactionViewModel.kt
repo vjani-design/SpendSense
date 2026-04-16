@@ -14,6 +14,7 @@ enum class BudgetType {
 
 class TransactionViewModel : ViewModel() {
 
+    
     private val repo = FirestoreRepository()
 
     // ================= STATES =================
