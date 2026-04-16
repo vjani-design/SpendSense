@@ -28,9 +28,10 @@ fun ProfileScreen(
 
     val isDark = ThemeManager.isDarkTheme
     val user = FirebaseAuth.getInstance().currentUser
-    val transactions by transactionViewModel.transactions.collectAsState()
 
-    var isShared by remember { mutableStateOf(false) }
+    val transactions by transactionViewModel.transactions.collectAsState()
+    val isShared by transactionViewModel.isSharedMode.collectAsState()
+
     var groupName by remember { mutableStateOf("") }
     var groupCode by remember { mutableStateOf("") }
 
@@ -39,7 +40,7 @@ fun ProfileScreen(
 
     LaunchedEffect(user?.uid) {
         if (user == null) {
-            transactionViewModel.isSharedMode = false
+            transactionViewModel.setPersonalMode()
             transactionViewModel.clearData()
         } else {
             transactionViewModel.setUserSession(user.uid)
@@ -54,227 +55,277 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .appBackground()
+                .verticalScroll(rememberScrollState())
                 .padding(padding)
+                .padding(16.dp)
         ) {
 
-            // ✅ SCROLLABLE CONTENT AREA (TOP SECTION)
-            Column(
+            // ---------------- HEADER ----------------
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .appGlass()
                     .padding(16.dp)
             ) {
-
-                // ---------------- HEADER ----------------
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .appGlass()
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "👤 Profile",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = user?.email ?: "No email found",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ---------------- THEME ----------------
-                Button(
-                    onClick = { ThemeManager.toggleTheme() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isDark) "Switch to Light Mode" else "Switch to Dark Mode")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ---------------- FAMILY MODE ----------------
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .appGlass()
-                        .padding(16.dp)
-                ) {
-                    Column {
-
-                        Text(
-                            text = "👨‍👩‍👧 Family Mode",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = if (isShared)
-                                "Sharing expenses with your group"
-                            else
-                                "Track expenses privately",
-                            fontSize = 13.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Switch(
-                            checked = isShared,
-                            onCheckedChange = {
-                                isShared = it
-                                transactionViewModel.isSharedMode = it
-                                transactionViewModel.loadAllData()
-
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        if (it) "Shared Mode Enabled"
-                                        else "Personal Mode Enabled"
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // ---------------- GROUP ----------------
-                if (isShared) {
-
-                    OutlinedTextField(
-                        value = groupName,
-                        onValueChange = { groupName = it },
-                        label = { Text("Group Name") },
-                        modifier = Modifier.fillMaxWidth()
+                Column {
+                    Text(
+                        text = "👤 Profile",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                    Button(
-                        onClick = {
-                            if (groupName.isNotBlank()) {
-                                transactionViewModel.createGroup(groupName)
-                                groupName = ""
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Create Group")
-                    }
+                    Text(
+                        text = user?.email ?: "No email found",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ---------------- THEME ----------------
+            Button(
+                onClick = { ThemeManager.toggleTheme() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (isDark) "Switch to Light Mode" else "Switch to Dark Mode"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ---------------- FAMILY MODE ----------------
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .appGlass()
+                    .padding(16.dp)
+            ) {
+                Column {
+
+                    Text(
+                        text = "👨‍👩‍👧 Family Mode",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = if (isShared)
+                            "Sharing expenses with your group"
+                        else
+                            "Track expenses privately",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    OutlinedTextField(
-                        value = groupCode,
-                        onValueChange = { groupCode = it },
-                        label = { Text("Group Code") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Switch(
+                        checked = isShared,
+                        onCheckedChange = { enabled ->
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                            if (enabled) {
 
-                    Button(
-                        onClick = {
-                            if (groupCode.isNotBlank()) {
-                                transactionViewModel.joinGroup(groupCode)
-                                groupCode = ""
+                                val groupId = transactionViewModel.getCurrentGroupId()
+
+                                if (!groupId.isNullOrEmpty()) {
+
+                                    transactionViewModel.setSharedMode(true, groupId)
+
+                                } else {
+
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Create or join a group first")
+                                    }
+
+                                    return@Switch
+                                }
+
+                            } else {
+                                transactionViewModel.setPersonalMode()
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Join Group")
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // ---------------- TITLE ----------------
-                Text(
-                    text = "📜 Transaction History",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // ---------------- TRANSACTIONS LIST (FIXED AREA) ----------------
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp)
-            ) {
-
-                if (transactions.isEmpty()) {
-
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No transactions yet 💡")
-                    }
-
-                } else {
-
-                    LazyColumn {
-                        items(transactions) { tx ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
-                                    .appGlass()
-                                    .padding(12.dp)
-                            ) {
-                                TransactionItem(
-                                    transaction = tx,
-                                    onDelete = { },
-                                    onEdit = { }
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (enabled) "Shared Mode Enabled"
+                                    else "Personal Mode Enabled"
                                 )
                             }
                         }
-                    }
+                    )
                 }
             }
 
-            // ---------------- BOTTOM BUTTONS ----------------
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+            Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = {
-                        FirebaseAuth.getInstance().signOut()
-                        transactionViewModel.isSharedMode = false
-                        transactionViewModel.clearData()
+            // ---------------- GROUP SECTION ----------------
+            if (isShared) {
 
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                // CREATE GROUP
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .appGlass()
+                        .padding(12.dp)
                 ) {
-                    Text("Sign Out")
+                    Column {
+
+                        Text("Create Group", fontWeight = FontWeight.Bold)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = groupName,
+                            onValueChange = { groupName = it },
+                            label = { Text("Group Name") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        var snackMessage by remember { mutableStateOf<String?>(null) }
+                        Button(
+                            onClick = {
+                                if (groupName.isNotBlank()) {
+
+                                    transactionViewModel.createGroup(groupName) { groupId ->
+
+                                        groupName = ""
+
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Group Created 🎉")
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Create Group")
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.fillMaxWidth()
+                // JOIN GROUP
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .appGlass()
+                        .padding(12.dp)
                 ) {
-                    Text("Back")
+                    Column {
+
+                        Text("Join Group", fontWeight = FontWeight.Bold)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = groupCode,
+                            onValueChange = { groupCode = it },
+                            label = { Text("Group Code") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Button(
+                            onClick = {
+                                if (groupCode.isNotBlank()) {
+                                    transactionViewModel.joinGroup(groupCode)
+                                    groupCode = ""
+
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Joining Group...")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Join Group")
+                        }
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // ---------------- TRANSACTIONS ----------------
+            Text(
+                text = "📜 Transaction History",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (transactions.isEmpty()) {
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .appGlass(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No transactions yet 💡")
+                }
+
+            } else {
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(transactions) { tx ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                                .appGlass()
+                                .padding(12.dp)
+                        ) {
+                            TransactionItem(
+                                transaction = tx,
+                                onDelete = { },
+                                onEdit = { }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ---------------- SIGN OUT ----------------
+            Button(
+                onClick = {
+                    FirebaseAuth.getInstance().signOut()
+                    transactionViewModel.setPersonalMode()
+                    transactionViewModel.clearData()
+
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sign Out")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back")
             }
         }
     }

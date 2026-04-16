@@ -3,6 +3,8 @@ package com.example.spendsense.ui.screens
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -27,7 +29,6 @@ fun ReportsScreen(
 
     val context = LocalContext.current
 
-    // Most spent category (safe call)
     val mostSpent = remember(transactions) {
         transactionViewModel.getMostSpentCategory()
     }
@@ -36,6 +37,7 @@ fun ReportsScreen(
         modifier = Modifier
             .fillMaxSize()
             .appBackground()
+            .verticalScroll(rememberScrollState())   // ✅ FIX ADDED HERE
             .padding(16.dp)
     ) {
 

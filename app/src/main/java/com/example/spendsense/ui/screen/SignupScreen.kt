@@ -2,6 +2,8 @@ package com.example.spendsense.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,15 +34,18 @@ fun SignupScreen(navController: NavController) {
     val context = LocalContext.current
     val db = Firebase.firestore
 
+    // ✅ SCROLL STATE ADDED
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)   // 🔥 FIX HERE
             .appBackground()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center
     ) {
 
-        // ---------------- TITLE ----------------
         Text(
             text = "Create Account",
             color = MaterialTheme.colorScheme.onBackground,
@@ -49,7 +54,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(Modifier.height(20.dp))
 
-        // ---------------- NAME ----------------
         TextField(
             value = name,
             onValueChange = { name = it },
@@ -60,14 +64,11 @@ fun SignupScreen(navController: NavController) {
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-
                 cursorColor = MaterialTheme.colorScheme.primary,
                 focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                 unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -75,7 +76,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(Modifier.height(12.dp))
 
-        // ---------------- EMAIL ----------------
         TextField(
             value = email,
             onValueChange = { email = it },
@@ -86,14 +86,11 @@ fun SignupScreen(navController: NavController) {
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-
                 cursorColor = MaterialTheme.colorScheme.primary,
                 focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                 unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -101,7 +98,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(Modifier.height(12.dp))
 
-        // ---------------- PASSWORD ----------------
         TextField(
             value = password,
             onValueChange = { password = it },
@@ -115,14 +111,11 @@ fun SignupScreen(navController: NavController) {
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-
                 cursorColor = MaterialTheme.colorScheme.primary,
                 focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                 unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -130,7 +123,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(Modifier.height(8.dp))
 
-        // ---------------- SHOW PASSWORD ----------------
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = showPassword,
@@ -144,7 +136,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(Modifier.height(20.dp))
 
-        // ---------------- SIGNUP BUTTON ----------------
         Button(
             onClick = {
 
@@ -169,7 +160,7 @@ fun SignupScreen(navController: NavController) {
                             )
                         )
 
-                        transactionViewModel.isSharedMode = false
+                        transactionViewModel.setPersonalMode()
                         transactionViewModel.clearData()
                         transactionViewModel.loadAllData()
 
@@ -197,7 +188,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(Modifier.height(10.dp))
 
-        // ---------------- LOGIN NAV ----------------
         TextButton(
             onClick = { navController.navigate("login") },
             modifier = Modifier.align(Alignment.CenterHorizontally)

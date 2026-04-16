@@ -3,6 +3,8 @@ package com.example.spendsense.ui.screen
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -48,7 +50,8 @@ fun AddIncomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .appBackground()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()), // ✅ FIX ADDED HERE
         verticalArrangement = Arrangement.Center
     ) {
 

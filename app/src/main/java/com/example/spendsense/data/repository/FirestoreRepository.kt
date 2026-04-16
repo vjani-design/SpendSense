@@ -2,7 +2,7 @@ package com.example.spendsense.data.repository
 
 import com.example.spendsense.model.Transaction
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FieldValue
+
 class FirestoreRepository {
 
     private val db = FirebaseFirestore.getInstance()
@@ -93,9 +93,11 @@ class FirestoreRepository {
                 onResult(0.0, "MONTHLY")
             }
     }
-    // ================= GROUPS =================
+
+    // ================= GROUPS (FIXED) =================
 
     fun createGroup(userId: String, groupName: String, onSuccess: (String) -> Unit) {
+
         val groupId = db.collection("groups").document().id
         val code = groupId.take(6).uppercase()
 
@@ -103,7 +105,9 @@ class FirestoreRepository {
             "id" to groupId,
             "name" to groupName,
             "code" to code,
-            "members" to listOf(userId)
+
+            // ✅ FIXED: map-based members (NOT list)
+            "members" to hashMapOf(userId to true)
         )
 
         db.collection("groups")
@@ -115,19 +119,28 @@ class FirestoreRepository {
     }
 
     fun joinGroup(userId: String, code: String, onResult: (String?) -> Unit) {
+
         db.collection("groups")
             .whereEqualTo("code", code)
             .get()
             .addOnSuccessListener { result ->
+
                 if (!result.isEmpty) {
+
                     val doc = result.documents[0]
                     val groupId = doc.id
 
+                    // ✅ FIXED: add as map field
                     db.collection("groups")
                         .document(groupId)
-                        .update("members", FieldValue.arrayUnion(userId))
+                        .update("members.$userId", true)
+                        .addOnSuccessListener {
+                            onResult(groupId)
+                        }
+                        .addOnFailureListener {
+                            onResult(null)
+                        }
 
-                    onResult(groupId)
                 } else {
                     onResult(null)
                 }
