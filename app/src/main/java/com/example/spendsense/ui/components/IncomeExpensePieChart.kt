@@ -9,23 +9,26 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.PercentFormatter
+import com.example.spendsense.ui.theme.ThemeManager   // ✅ ADD THIS IMPORT
 
 @Composable
 fun IncomeExpensePieChart(
     income: Float,
     expense: Float,
     modifier: Modifier = Modifier,
-    onChartReady: (PieChart) -> Unit = {}   // ✅ ADD THIS
+    onChartReady: (PieChart) -> Unit = {}
 ){
+    val isDark = ThemeManager.isDarkTheme   // ✅ FIXED
 
     AndroidView(
-        modifier = modifier   // ✅ USE THIS
+        modifier = modifier
             .fillMaxWidth()
             .height(300.dp),
         factory = { context ->
 
             val chart = PieChart(context)
-            onChartReady(chart)   // ✅ ADD THIS LINE
+
+            onChartReady(chart)
 
             val entries = listOf(
                 PieEntry(income, "Income"),
@@ -38,7 +41,7 @@ fun IncomeExpensePieChart(
                     Color.parseColor("#F44336")
                 )
                 valueTextSize = 14f
-                valueTextColor = Color.WHITE
+                valueTextColor = if (isDark) Color.WHITE else Color.BLACK
                 sliceSpace = 3f
                 valueLinePart1Length = 0.4f
                 valueLinePart2Length = 0.4f
@@ -51,9 +54,12 @@ fun IncomeExpensePieChart(
 
             chart.data = data
             chart.isDrawHoleEnabled = false
-            chart.setEntryLabelColor(Color.WHITE)
+            chart.setEntryLabelColor(if (isDark) Color.WHITE else Color.BLACK)
             chart.setEntryLabelTextSize(12f)
-            chart.legend.textColor = Color.WHITE
+
+            chart.legend.textColor =
+                if (isDark) Color.WHITE else Color.BLACK
+
             chart.description.isEnabled = false
 
             chart.animateY(1000)

@@ -11,23 +11,25 @@ import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import java.util.*
-
+import com.example.spendsense.ui.theme.ThemeManager   // ✅ ADD THIS
 
 @Composable
 fun MonthlyBarChart(
     transactions: List<Transaction>,
     modifier: Modifier = Modifier,
-    onChartReady: (BarChart) -> Unit = {}   // ✅ ADD THIS
+    onChartReady: (BarChart) -> Unit = {}
 ) {
+    val isDark = ThemeManager.isDarkTheme   // ✅ FIXED
 
     AndroidView(
-        modifier = modifier   // ✅ USE THIS (instead of fixed modifier)
+        modifier = modifier
             .fillMaxWidth()
             .height(320.dp),
         factory = { context ->
 
             val chart = BarChart(context)
-            onChartReady(chart)   // ✅ ADD THIS
+
+            onChartReady(chart)
             if (transactions.isEmpty()) return@AndroidView chart
 
             val grouped = transactions.groupBy { t ->
@@ -53,13 +55,13 @@ fun MonthlyBarChart(
 
             val incomeDataSet = BarDataSet(incomeEntries, "Income").apply {
                 color = Color.parseColor("#4CAF50")
-                valueTextColor = Color.WHITE
+                valueTextColor = if (isDark) Color.WHITE else Color.BLACK   // ✅ FIX
                 valueTextSize = 10f
             }
 
             val expenseDataSet = BarDataSet(expenseEntries, "Expense").apply {
                 color = Color.parseColor("#F44336")
-                valueTextColor = Color.WHITE
+                valueTextColor = if (isDark) Color.WHITE else Color.BLACK   // ✅ FIX
                 valueTextSize = 10f
             }
 
@@ -81,14 +83,17 @@ fun MonthlyBarChart(
                 position = XAxis.XAxisPosition.BOTTOM
                 granularity = 1f
                 setDrawGridLines(false)
-                textColor = Color.WHITE
+                textColor = if (isDark) Color.WHITE else Color.BLACK
             }
 
-            chart.axisLeft.textColor = Color.WHITE
+            chart.axisLeft.textColor = if (isDark) Color.WHITE else Color.BLACK
             chart.axisRight.isEnabled = false
 
             chart.description.isEnabled = false
             chart.legend.isEnabled = true
+
+            chart.legend.textColor =
+                if (isDark) Color.WHITE else Color.BLACK
 
             chart.animateY(1000)
             chart.invalidate()

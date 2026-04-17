@@ -27,7 +27,8 @@ object PdfReportGenerator {
         budget: Double,
         mostSpent: String,
         pieBitmap: Bitmap?,
-        barBitmap: Bitmap?
+        barBitmap: Bitmap?,
+        userEmail: String
     ): Uri? {
 
         return try {
@@ -87,7 +88,7 @@ object PdfReportGenerator {
             // ================= HEADER =================
             document.add(Paragraph("SPENDSENSE FINANCIAL REPORT\n"))
             document.add(Paragraph("------------------------------\n"))
-
+            document.add(Paragraph("User Email: $userEmail\n"))
             // ================= SUMMARY =================
             document.add(Paragraph("Income: ₹$income"))
             document.add(Paragraph("Expense: ₹$expense"))

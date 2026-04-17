@@ -19,14 +19,16 @@ import com.example.spendsense.ui.components.IncomeExpensePieChart
 import com.example.spendsense.ui.components.MonthlyBarChart
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.PieChart
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun ReportsScreen(
     navController: NavController,
     transactionViewModel: TransactionViewModel
 ) {
-
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val context = LocalContext.current
+    val textColor = MaterialTheme.colorScheme.onBackground
     val budget by transactionViewModel.budget.collectAsState()
     val transactions by transactionViewModel.transactions.collectAsState()
     val income by transactionViewModel.income.collectAsState()
@@ -48,17 +50,20 @@ fun ReportsScreen(
             .padding(16.dp)
     ) {
 
-        Text("Reports", style = MaterialTheme.typography.headlineMedium)
-
+        Text(
+            "Reports",
+            style = MaterialTheme.typography.headlineMedium,
+            color = textColor
+        )
         Spacer(Modifier.height(16.dp))
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Income: ₹$income")
-                Text("Expense: ₹$expense")
-                Text("Balance: ₹$balance")
-                Text("Most Spent: $mostSpent")
-                Text("Transactions: ${transactions.size}")
+                Text("Income: ₹$income", color = textColor)
+                Text("Expense: ₹$expense", color = textColor)
+                Text("Balance: ₹$balance", color = textColor)
+                Text("Most Spent: $mostSpent", color = textColor)
+                Text("Transactions: ${transactions.size}", color = textColor)
             }
         }
 
@@ -96,6 +101,7 @@ fun ReportsScreen(
             onClick = {
 
                 try {
+                    val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Not Logged In"
 
                     // 🔥 CAPTURE BITMAPS HERE (THIS WAS MISSING)
                     val pieBitmap: Bitmap? = pieChartView?.let {
@@ -114,8 +120,10 @@ fun ReportsScreen(
                         balance = balance,
                         budget = budget,
                         mostSpent = mostSpent,
-                        pieBitmap = pieBitmap,   // ✅ NOW WORKS
-                        barBitmap = barBitmap    // ✅ NOW WORKS
+                        pieBitmap = pieBitmap,
+                        barBitmap = barBitmap,
+                        userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Unknown"
+
                     )
 
                     if (uri != null) {

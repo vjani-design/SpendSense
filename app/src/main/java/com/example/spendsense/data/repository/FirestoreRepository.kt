@@ -3,6 +3,7 @@ package com.example.spendsense.data.repository
 import com.example.spendsense.model.Transaction
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.spendsense.data.model.Group
+import com.google.firebase.auth.FirebaseAuth
 
 class FirestoreRepository {
 
@@ -101,7 +102,6 @@ class FirestoreRepository {
 
         val groupId = db.collection("groups").document().id
 
-        // ✅ UNIQUE CODE (TIME + RANDOM)
         val code = (System.currentTimeMillis().toString().takeLast(6) +
                 (100..999).random()).take(6)
 
@@ -109,8 +109,9 @@ class FirestoreRepository {
             "id" to groupId,
             "name" to groupName,
             "code" to code,
-            "createdBy" to userId, // ✅ CREATOR
-            "members" to hashMapOf(userId to true)
+            "createdBy" to userId,
+            "members" to hashMapOf(userId to true),
+            "invitedEmails" to hashMapOf<String, Boolean>()
         )
 
         db.collection("groups")
@@ -120,10 +121,23 @@ class FirestoreRepository {
                 onSuccess(groupId)
             }
             .addOnFailureListener {
-                onSuccess("") // fallback
+                onSuccess("")
             }
     }
 
+    // ================= INVITE =================
+    fun inviteUser(groupId: String, email: String, onResult: (Boolean) -> Unit) {
+
+        val safeEmail = email.trim().lowercase().replace(".", ",") // ✅ FIX
+
+        db.collection("groups")
+            .document(groupId)
+            .update("invitedEmails.$safeEmail", true)
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    // ================= JOIN =================
     fun joinGroup(userId: String, code: String, onResult: (String?) -> Unit) {
 
         db.collection("groups")
@@ -135,16 +149,29 @@ class FirestoreRepository {
 
                     val doc = result.documents[0]
                     val groupId = doc.id
+                    val group = doc.toObject(Group::class.java)
 
-                    db.collection("groups")
-                        .document(groupId)
-                        .update("members.$userId", true)
-                        .addOnSuccessListener {
-                            onResult(groupId)
-                        }
-                        .addOnFailureListener {
-                            onResult(null)
-                        }
+                    val currentEmail = FirebaseAuth
+                        .getInstance().currentUser?.email ?: ""
+
+                    val safeEmail = currentEmail.trim().lowercase().replace(".", ",") // ✅ FIX
+
+                    // ✅ ONLY ALLOW IF INVITED
+                    if (group?.invitedEmails?.containsKey(safeEmail) == true) {
+
+                        db.collection("groups")
+                            .document(groupId)
+                            .update("members.$userId", true)
+                            .addOnSuccessListener {
+                                onResult(groupId)
+                            }
+                            .addOnFailureListener {
+                                onResult(null)
+                            }
+
+                    } else {
+                        onResult(null)
+                    }
 
                 } else {
                     onResult(null)
@@ -171,6 +198,23 @@ class FirestoreRepository {
             }
             .addOnFailureListener {
                 onResult(null)
+            }
+    }
+    fun getAllGroups(onResult: (List<Group>) -> Unit) {
+        db.collection("groups")
+            .get()
+            .addOnSuccessListener { snap ->
+                val list = snap.documents.mapNotNull {
+                    try {
+                        it.toObject(Group::class.java)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                onResult(list)
+            }
+            .addOnFailureListener {
+                onResult(emptyList())
             }
     }
 }

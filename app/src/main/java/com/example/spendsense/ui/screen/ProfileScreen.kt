@@ -19,7 +19,7 @@ import com.example.spendsense.viewmodel.TransactionViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.example.spendsense.ui.theme.*
 import kotlinx.coroutines.launch
-
+import com.example.spendsense.data.model.Group
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -43,6 +43,7 @@ fun ProfileScreen(
         if (user == null) {
             transactionViewModel.setPersonalMode()
             transactionViewModel.clearData()
+            transactionViewModel.loadUserGroups()
         } else {
             transactionViewModel.setUserSession(user.uid)
         }
@@ -253,6 +254,141 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
+
+            // ================= GROUP DROPDOWN =================
+            var grpExpanded by remember { mutableStateOf(false) }
+            var grpTab by remember { mutableStateOf("Created Groups") }
+
+            Button(
+                onClick = { grpExpanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Group: $grpTab")
+            }
+
+            DropdownMenu(
+                expanded = grpExpanded,
+                onDismissRequest = { grpExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Created Groups") },
+                    onClick = {
+                        grpTab = "Created Groups"
+                        grpExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Joined Groups") },
+                    onClick = {
+                        grpTab = "Joined Groups"
+                        grpExpanded = false
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ================= GROUP LIST =================
+            val groups by transactionViewModel.userGroups.collectAsState()
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+            val safeEmail = FirebaseAuth.getInstance().currentUser?.email
+                ?.trim()?.lowercase()?.replace(".", ",") ?: ""
+
+            if (grpTab == "Created Groups") {
+
+                groups.filter { it.createdBy == uid }.forEach { g ->
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .appGlass()
+                            .padding(12.dp)
+                    ) {
+                        Column {
+
+                            Text("Name: ${g.name}", fontWeight = FontWeight.Bold)
+                            Text("Code: ${g.code}")
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text("Invited Members", fontWeight = FontWeight.SemiBold)
+
+                            g.invitedEmails.keys.forEach { safe ->
+                                val email = safe.replace(",", ".")
+                                Text("• $email")
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+            } else {
+
+                groups.filter { it.createdBy != uid }.forEach { g ->
+
+                    val canSeeCode =
+                        g.invitedEmails.containsKey(safeEmail) &&
+                                g.members.containsKey(uid)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .appGlass()
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Text("Name: ${g.name}", fontWeight = FontWeight.Bold)
+                            Text("Code: ${if (canSeeCode) g.code else "No Access"}")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
+            // ================= INVITE MEMBER (ADDED, NO UI CHANGE ABOVE) =================
+            var inviteEmail by remember { mutableStateOf("") }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .appGlass()
+                    .padding(12.dp)
+            ) {
+                Column {
+
+                    Text("Invite Member", fontWeight = FontWeight.Bold)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = inviteEmail,
+                        onValueChange = { inviteEmail = it },
+                        label = { Text("Enter Email") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (inviteEmail.isNotBlank()) {
+                                transactionViewModel.inviteUser(inviteEmail)
+                                inviteEmail = ""
+
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("User Invited ✅")
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Send Invite")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // ---------------- GROUP INFO DISPLAY ----------------
             Box(

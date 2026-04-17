@@ -2,46 +2,35 @@ package com.example.spendsense.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 🌑 DARK MODE (Clean Fintech, NOT neon-heavy)
-val DarkBackground = Color(0xFF0F1115)
-val DarkSurface = Color(0xFF151823)
-val DarkSurfaceVariant = Color(0xFF1C1F2A)
+// 🌑 DARK MODE (exact deep blue)
+val DarkBackground = Color(0xFF0B0F2A)
+val DarkSurface = Color(0xFF121735)
+val DarkSurfaceVariant = Color(0xFF1A1F3D)
 
-val Primary = Color(0xFF5B5FEF)
-val Secondary = Color(0xFF00C2FF)
+val Primary = Color(0xFF3B82F6)
+val Secondary = Color(0xFF60A5FA)
 
-val TextPrimaryDark = Color(0xFFFFFFFF)
-val TextSecondaryDark = Color(0xFF9CA3AF)
+val TextPrimaryDark = Color(0xFFEAF0FF)
+val TextSecondaryDark = Color(0xFFA5B4FC)
 
-val Success = Color(0xFF22C55E)
-val Danger = Color(0xFFEF4444)
-val Warning = Color(0xFFF59E0B)
-
-val BorderDark = Color(0x22FFFFFF)
+val BorderDark = Color(0xFF2A2F55)
 
 
-// 🌤 LIGHT MODE
-val LightBackground = Color(0xFFF6F7FB)
+// 🌤 LIGHT MODE (exact bluish UI)
+val LightBackground = Color(0xFFF4F6FF)
 val LightSurface = Color(0xFFFFFFFF)
-val LightSurfaceVariant = Color(0xFFF0F2F7)
+val LightSurfaceVariant = Color(0xFFEFF2FF)
 
-val PrimaryLight = Color(0xFF5B5FEF)
-val SecondaryLight = Color(0xFF06B6D4)
+val PrimaryLight = Color(0xFF3B82F6)
+val SecondaryLight = Color(0xFF60A5FA)
 
-val TextPrimaryLight = Color(0xFF0F172A)
-val TextSecondaryLight = Color(0xFF6B7280)
-
-val BorderLight = Color(0xFFE5E7EB)
-
-
-// 🌈 GRADIENTS
-val ExpenseStart = Color(0xFFFF5A5F)
-val ExpenseEnd = Color(0xFFFF3D71)
-
-val IncomeStart = Color(0xFF00C6A7)
-val IncomeEnd = Color(0xFF1DD1A1)
+val TextPrimaryLight = Color(0xFF1E293B)
+val TextSecondaryLight = Color(0xFF64748B)
+// 🔴 Error / Danger
+val Danger = Color(0xFFEF4444)
+val BorderLight = Color(0xFFE3E8FF)
 
 
-// ⚪ OPTIONAL
-val White = Color(0xFFFFFFFF)
-val Black = Color(0xFF000000)
+// 🌈 BUTTON GRADIENT (exact)
+val GradientStart = Color(0xFF2563EB)
+val GradientEnd = Color(0xFF60A5FA)

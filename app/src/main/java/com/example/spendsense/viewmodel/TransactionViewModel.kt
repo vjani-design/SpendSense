@@ -7,7 +7,7 @@ import com.example.spendsense.model.Transaction
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-
+import com.example.spendsense.data.model.Group
 enum class BudgetType {
     WEEKLY,
     MONTHLY
@@ -198,21 +198,33 @@ class TransactionViewModel : ViewModel() {
             }
         }
     }
+    private val _userGroups = MutableStateFlow<List<Group>>(emptyList())
+    val userGroups: StateFlow<List<Group>> = _userGroups
+
 
     // ================= GROUP INFO =================
     fun loadGroupInfo(groupId: String) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val uid = user.uid
+        val email = user.email ?: ""
 
-        _currentGroupCode.value = ""
-
-        if (currentUserId == null) return
+        val safeEmail = email.replace(".", ",") // ✅ FIX
 
         repo.getGroup(groupId) { group ->
             if (group != null) {
+
                 _currentGroupName.value = group.name
 
+                val isCreator = group.createdBy == uid
+                val isInvited = group.invitedEmails.containsKey(safeEmail) // ✅ FIX
+                val isMember = group.members.containsKey(uid)
+
                 _currentGroupCode.value =
-                    if (group.createdBy == currentUserId) group.code else ""
+                    if ((isCreator || isInvited) && isMember) {
+                        group.code
+                    } else {
+                        ""
+                    }
             }
         }
     }
@@ -270,5 +282,19 @@ class TransactionViewModel : ViewModel() {
         }
 
         loadAllData()
+    }
+
+    fun inviteUser(email: String) {
+        val groupId = currentGroupIdInternal ?: return
+        repo.inviteUser(groupId, email) {}
+    }
+    fun loadUserGroups() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        repo.getAllGroups { list ->
+            _userGroups.value = list.filter {
+                it.createdBy == uid || it.members.containsKey(uid)
+            }
+        }
     }
 }
