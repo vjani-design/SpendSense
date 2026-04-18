@@ -5,8 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 object ThemeManager {
-    private val _isDarkTheme = mutableStateOf(true)
-
+    private val _isDarkTheme = mutableStateOf(false)
     var isDarkTheme: Boolean
         get() = _isDarkTheme.value
         set(value) { _isDarkTheme.value = value }
