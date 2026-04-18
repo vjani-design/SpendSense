@@ -3,17 +3,21 @@ package com.example.spendsense.ui.screen
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,10 +25,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.spendsense.ui.theme.*
+import com.example.spendsense.R
 import com.example.spendsense.ui.components.*
-import com.example.spendsense.viewmodel.TransactionViewModel
+import com.example.spendsense.ui.theme.*
 import com.example.spendsense.utils.NotificationHelper
+import com.example.spendsense.viewmodel.TransactionViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -38,8 +43,6 @@ fun HomeScreen(
     val activity = context as Activity
     val user = FirebaseAuth.getInstance().currentUser
 
-    val isDark = ThemeManager.isDarkTheme
-
     var selectedChart by remember { mutableStateOf("") }
     var showAnalytics by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("U") }
@@ -50,34 +53,28 @@ fun HomeScreen(
     val balance by transactionViewModel.balance.collectAsState()
     val budget by transactionViewModel.budget.collectAsState()
     val budgetAlert by transactionViewModel.budgetAlert.collectAsState()
-    val budgetPercent by transactionViewModel.budgetUsedPercent.collectAsState()
     val budgetAlertEvent by transactionViewModel.budgetAlertEvent.collectAsState()
+    val budgetPercent by transactionViewModel.budgetUsedPercent.collectAsState()
 
     val sortedList = remember(transactions) {
         transactions.sortedByDescending { it.timestamp }
     }
 
-    // Load transactions
-    LaunchedEffect(user?.uid) {
-        if (user != null) {
+    val textColor = MaterialTheme.colorScheme.onBackground
+
+    LaunchedEffect(Unit) {
+        FirebaseAuth.getInstance().currentUser?.let {
             transactionViewModel.loadTransactions()
-        } else {
-            transactionViewModel.clearData()
         }
     }
 
-    // Budget alert notification
     LaunchedEffect(budgetAlertEvent) {
         if (budgetAlertEvent) {
-            NotificationHelper.showBudgetAlert(
-                context,
-                "⚠ Budget limit reached!"
-            )
+            NotificationHelper.showBudgetAlert(context, "⚠ Budget limit reached!")
             transactionViewModel.resetBudgetAlert()
         }
     }
 
-    // Permission request
     LaunchedEffect(Unit) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -94,7 +91,6 @@ fun HomeScreen(
         }
     }
 
-    // Fetch username
     LaunchedEffect(Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null) {
@@ -116,191 +112,178 @@ fun HomeScreen(
 
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // TOP BAR
-            Box(
+            // 🔹 HEADER
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary)
                     .height(64.dp)
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
 
                     Text(
-                        text = "SpendSense",
-                        color = MaterialTheme.colorScheme.onBackground,
+                        "SpendSense",
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
                     )
 
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
-                            .clickable { navController.navigate("profile") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = userName.firstOrNull()?.uppercase() ?: "U",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 16.sp
-                        )
-                    }
+                    Spacer(Modifier.width(8.dp))
+
+                    Image(
+                        painter = painterResource(id = R.drawable.updated_logo),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(textColor.copy(alpha = 0.1f))
+                        .clickable { navController.navigate("profile") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(userName.firstOrNull()?.uppercase() ?: "U", color = textColor)
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // BALANCE SECTION
+            // 🔹 BALANCE
             Column(Modifier.padding(16.dp)) {
 
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .appGlass()
-                        .padding(12.dp)
-                ) {
+                Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
                     Text(
                         "Balance: ₹$balance",
-                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
                     )
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 Row {
-
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .appGlass()
-                            .padding(12.dp)
-                    ) {
-                        Text("Income: ₹$income", color = Color(0xFF00C853))
+                    Box(Modifier.weight(1f).appGlass().padding(12.dp)) {
+                        Text("Income: ₹$income", color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
                     }
-
                     Spacer(Modifier.width(10.dp))
-
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .appGlass()
-                            .padding(12.dp)
-                    ) {
-                        Text("Expense: ₹$expense", color = Color(0xFFD50000))
+                    Box(Modifier.weight(1f).appGlass().padding(12.dp)) {
+                        Text("Expense: ₹$expense", color = Color(0xFFD50000), fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // STATUS
-            Text(
-                text = when {
-                    expense > income -> "⚠ Overspending!"
-                    expense > income * 0.8 -> "⚠ High spending"
-                    else -> "✅ Healthy finances"
-                },
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(16.dp)
-            )
 
-            val mostSpent = transactionViewModel.getMostSpentCategory()
-
-            Text(
-                text = "Top Category: $mostSpent",
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-            )
-
-            // BUDGET
+            // 🔹 BUDGET
             Column(Modifier.padding(horizontal = 16.dp)) {
 
-                Text("Budget: ₹$budget", color = MaterialTheme.colorScheme.onBackground)
+                val statusColor =
+                    if (budgetAlert) Color(0xFFD50000) else Color(0xFF00C853)
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f)
+                        MaterialTheme.colorScheme.surfaceVariant else Color.White
+                ) {
+                    Row(Modifier.padding(10.dp)) {
+                        Text(if (budgetAlert) "⚠" else "✔", color = statusColor)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (budgetAlert) "OVERSPENDING" else "HEALTHY FINANCES",
+                            fontWeight = FontWeight.Bold,
+                            color = statusColor
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    Text("Set Budget", color = textColor, fontWeight = FontWeight.Bold)
+                    Text("₹$budget", color = textColor, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    Text("Monthly Budget", color = textColor, fontWeight = FontWeight.Bold)
+                    Text("${"%.0f".format(budgetPercent)}%", color = textColor, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(14.dp))
 
                 LinearProgressIndicator(
-                    progress = if (budget > 0)
-                        (budgetPercent.coerceIn(0.0, 100.0) / 100).toFloat()
-                    else 0f,
+                    progress = (budgetPercent / 100).toFloat(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp)
+                        .height(6.dp),
+                    color = if (budgetAlert) Color.Red else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 )
-
-                Text(
-                    "Used: ${"%.1f".format(budgetPercent)}%",
-                    color = if (budgetAlert) Color.Red else MaterialTheme.colorScheme.onBackground
-                )
-
-                if (budgetAlert) {
-                    Text("⚠ Budget almost full!", color = Color.Red)
-                }
             }
 
-            // ANALYTICS BUTTON
+            // 🔷 ANALYTICS BUTTON
             Button(
                 onClick = { showAnalytics = !showAnalytics },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
             ) {
-                Text(if (showAnalytics) "Hide Analytics" else "Show Analytics")
+                Text(if (showAnalytics) "Hide Analytics" else "Show Analytics", fontWeight = FontWeight.Bold)
             }
 
+            // 🔷 ANALYTICS
             if (showAnalytics) {
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Button(onClick = { selectedChart = "PIE" }) {
-                            Text("Pie Chart")
+                    Text(
+                        "Pie Chart",
+                        color = textColor,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            selectedChart = if (selectedChart == "PIE") "" else "PIE"
                         }
+                    )
 
-                        Button(onClick = { selectedChart = "BAR" }) {
-                            Text("Bar Chart")
+                    Text(
+                        "Bar Chart",
+                        color = textColor,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            selectedChart = if (selectedChart == "BAR") "" else "BAR"
                         }
-                    }
+                    )
+                }
 
-                    Spacer(Modifier.height(16.dp))
-
-                    if (selectedChart == "PIE") {
-                        IncomeExpensePieChart(
-                            income = income.toFloat(),
-                            expense = expense.toFloat()
-                        )
-                    }
-
-                    if (selectedChart == "BAR") {
-                        MonthlyBarChart(transactions)
-                    }
-
-                    if (selectedChart.isEmpty()) {
-                        Text(
-                            "Select a chart to view analytics",
-                            color = Color.Gray
-                        )
+                Box(Modifier.padding(16.dp)) {
+                    when (selectedChart) {
+                        "PIE" -> IncomeExpensePieChart(income.toFloat(), expense.toFloat())
+                        "BAR" -> MonthlyBarChart(transactions)
+                        else -> Text("Select a chart", color = textColor.copy(0.7f), fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // LIST
+            // 🔷 HISTORY
+            Text(
+                "Recent Activity",
+                Modifier.padding(16.dp),
+                color = textColor,
+                fontWeight = FontWeight.Bold
+            )
+
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(16.dp)
+                modifier = Modifier.weight(1f)
             ) {
-                items(sortedList, key = { it.id }) { item ->
+                items(sortedList) { item ->
+
                     SwipeToDeleteItem(
                         onDelete = { transactionViewModel.delete(item.id) }
                     ) {

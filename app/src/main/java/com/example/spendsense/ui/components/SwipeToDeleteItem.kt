@@ -3,12 +3,13 @@ package com.example.spendsense.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
 fun SwipeToDeleteItem(
@@ -23,7 +24,6 @@ fun SwipeToDeleteItem(
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
-                        // 👉 LEFT → RIGHT swipe delete (positive offset)
                         if (offsetX > 200f) {
                             onDelete()
                         }
@@ -33,16 +33,16 @@ fun SwipeToDeleteItem(
 
                     offsetX += dragAmount
 
-                    // ❗ allow ONLY left → right swipe
+                    // allow only left → right
                     if (offsetX < 0f) offsetX = 0f
 
-                    // limit swipe distance
+                    // limit
                     if (offsetX > 400f) offsetX = 400f
                 }
             }
     ) {
 
-        // 🔴 CLEAN BACKGROUND (NO ICON, NO TEXT)
+        // 🔴 Background
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -54,10 +54,12 @@ fun SwipeToDeleteItem(
                 )
         )
 
-        // 🟢 YOUR ITEM (UNCHANGED)
+        // 🟢 Foreground (FIXED OFFSET)
         Box(
             modifier = Modifier
-                .offset(x = offsetX.dp)
+                .offset {
+                    IntOffset(offsetX.roundToInt(), 0)
+                }
         ) {
             content()
         }
