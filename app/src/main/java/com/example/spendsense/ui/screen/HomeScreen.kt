@@ -63,8 +63,8 @@ fun HomeScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
 
     LaunchedEffect(Unit) {
-        FirebaseAuth.getInstance().currentUser?.let {
-            transactionViewModel.loadTransactions()
+        FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+            transactionViewModel.setUserSession(uid)
         }
     }
 
