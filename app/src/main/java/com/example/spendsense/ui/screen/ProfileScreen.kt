@@ -59,11 +59,10 @@ fun ProfileScreen(
                 .padding(padding)
         ) {
 
-            // 🔹 SCROLLABLE CONTENT
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 120.dp) // 👈 space for buttons
+                    .padding(bottom = 120.dp)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -94,23 +93,17 @@ fun ProfileScreen(
                             Switch(
                                 checked = isShared,
                                 onCheckedChange = { enabled ->
-
                                     val groupId = transactionViewModel.currentGroupId
 
                                     if (enabled) {
-                                        if (groupId.isNotEmpty()) {
-                                            transactionViewModel.setSharedMode(true, groupId)
-                                        } else {
-                                            transactionViewModel.setSharedMode(true, null)
-                                        }
+                                        transactionViewModel.setSharedMode(true, groupId.ifEmpty { null })
                                     } else {
                                         transactionViewModel.setSharedMode(false)
                                     }
 
                                     scope.launch {
                                         snackbarHostState.showSnackbar(
-                                            if (enabled) "Family Mode ON"
-                                            else "Personal Mode ON"
+                                            if (enabled) "Family Mode ON" else "Personal Mode ON"
                                         )
                                     }
                                 }
@@ -136,16 +129,10 @@ fun ProfileScreen(
                                 Button(
                                     onClick = {
                                         if (groupName.isNotBlank()) {
-                                            transactionViewModel.createGroup(groupName) { groupId ->
+                                            transactionViewModel.createGroup(groupName) {
                                                 groupName = ""
-
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar(
-                                                        if (groupId.isNotEmpty())
-                                                            "Group created 🎉"
-                                                        else
-                                                            "Failed ❌"
-                                                    )
+                                                    snackbarHostState.showSnackbar("Group created 🎉")
                                                 }
                                             }
                                         }
@@ -173,14 +160,9 @@ fun ProfileScreen(
                                 Button(
                                     onClick = {
                                         if (groupCode.isNotBlank()) {
-                                            transactionViewModel.joinGroup(groupCode) { groupId ->
+                                            transactionViewModel.joinGroup(groupCode) {
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar(
-                                                        if (!groupId.isNullOrEmpty())
-                                                            "Joined group ✅"
-                                                        else
-                                                            "Invalid / Not invited ❌"
-                                                    )
+                                                    snackbarHostState.showSnackbar("Join attempt done")
                                                 }
                                             }
                                             groupCode = ""
@@ -221,7 +203,6 @@ fun ProfileScreen(
                                     if (inviteEmail.isNotBlank()) {
                                         transactionViewModel.inviteUser(inviteEmail)
                                         inviteEmail = ""
-
                                         scope.launch {
                                             snackbarHostState.showSnackbar("Invite sent 📩")
                                         }
@@ -252,31 +233,22 @@ fun ProfileScreen(
                     }
                 }
 
-                item {
-                    Text("📜 Transaction History", fontWeight = FontWeight.Bold)
-                }
-
                 items(transactions) { tx ->
                     TransactionItem(tx, {}, {})
                 }
             }
 
-            // 🔥 FIXED FOOTER BUTTONS
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
 
                 Button(
                     onClick = {
                         FirebaseAuth.getInstance().signOut()
-                        transactionViewModel.setSharedMode(false)
-                        transactionViewModel.clearData()
-
                         navController.navigate("login") {
                             popUpTo(0) { inclusive = true }
                         }
@@ -295,14 +267,10 @@ fun ProfileScreen(
             }
         }
 
-        // 🔹 GROUP SELECT DIALOG (unchanged)
+        // 🔥 GROUP DIALOG
         if (showGroupDialog) {
 
             val uid = user?.uid ?: ""
-            val safeEmail = user?.email
-                ?.trim()
-                ?.lowercase()
-                ?.replace(".", ",") ?: ""
 
             AlertDialog(
                 onDismissRequest = { showGroupDialog = false },
@@ -311,41 +279,69 @@ fun ProfileScreen(
                     LazyColumn {
                         items(groups) { g ->
 
-                            val canUse =
-                                g.createdBy == uid ||
-                                        (g.members.containsKey(uid) &&
-                                                g.invitedEmails.containsKey(safeEmail))
+                            val isOwner = g.createdBy == uid
+                            val isMember = g.members.containsKey(uid)
 
-                            if (canUse) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            transactionViewModel.setSharedMode(true, g.id)
-                                            showGroupDialog = false
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = isOwner || isMember) {
+                                        transactionViewModel.setSharedMode(true, g.id)
+                                        showGroupDialog = false
 
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("Group activated ✅")
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Group activated ✅")
+                                        }
+                                    }
+                                    .padding(12.dp)
+                            ) {
+
+                                Text(g.name, fontWeight = FontWeight.Bold)
+                                Text("Code: ${g.code}")
+
+                                Text(
+                                    when {
+                                        isOwner -> "👑 Owner"
+                                        isMember -> "👤 Member"
+                                        else -> "Guest"
+                                    },
+                                    fontSize = 11.sp
+                                )
+
+                                if (g.invitedEmails.isNotEmpty()) {
+                                    Text("Invited:")
+                                    g.invitedEmails.keys.forEach {
+                                        val email = it.replace(",", ".")
+                                        Row(
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(email)
+
+                                            if (isOwner) {
+                                                Text(
+                                                    "Remove",
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.clickable {
+                                                        transactionViewModel.removeInvite(g.id, it)
+                                                    }
+                                                )
                                             }
                                         }
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(g.name, fontWeight = FontWeight.Bold)
-                                        Text("Code: ${g.code}", fontSize = 12.sp)
                                     }
+                                }
 
-                                    val currentId = transactionViewModel.currentGroupId
-
-                                    if (g.id == currentId) {
-                                        Text("ACTIVE", color = MaterialTheme.colorScheme.primary)
-                                    } else {
-                                        Text("✔")
+                                if (isOwner) {
+                                    Button(
+                                        onClick = {},
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Edit Group")
                                     }
                                 }
                             }
+
+                            Divider()
                         }
                     }
                 },

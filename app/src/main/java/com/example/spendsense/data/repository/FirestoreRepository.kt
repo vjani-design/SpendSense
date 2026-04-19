@@ -252,7 +252,15 @@ class FirestoreRepository {
                 onResult(null)
             }
     }
+    fun removeInvite(groupId: String, safeEmail: String) {
 
+        db.collection("groups")
+            .document(groupId)
+            .update(
+                "invitedEmails.$safeEmail",
+                com.google.firebase.firestore.FieldValue.delete()
+            )
+    }
     fun getAllGroups(onResult: (List<Group>) -> Unit) {
         db.collection("groups")
             .get()

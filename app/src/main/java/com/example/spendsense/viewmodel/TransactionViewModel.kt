@@ -350,6 +350,10 @@ class TransactionViewModel : ViewModel() {
         loadAllData()
     }
 
+    fun removeInvite(groupId: String, safeEmail: String) {
+        repo.removeInvite(groupId, safeEmail)
+    }
+
     // ================= HELPERS =================
     fun getMostSpentCategory(): String {
         val expenseList = _transactions.value.filter { it.type == "EXPENSE" }
