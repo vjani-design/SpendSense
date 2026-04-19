@@ -232,10 +232,12 @@ class TransactionViewModel : ViewModel() {
         }
     }
 
-    fun joinGroup(code: String) {
+    fun joinGroup(code: String, onResult: (String?) -> Unit) {
+
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         repo.joinGroup(uid, code) { groupId ->
+
             if (!groupId.isNullOrEmpty()) {
                 currentGroupIdInternal = groupId
                 _currentGroupId.value = groupId
@@ -244,6 +246,9 @@ class TransactionViewModel : ViewModel() {
                 loadAllData()
                 loadGroupInfo(groupId)
             }
+
+            // 🔥 IMPORTANT → send result back to UI
+            onResult(groupId)
         }
     }
 

@@ -1,5 +1,6 @@
 package com.example.spendsense.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,6 +37,7 @@ fun ProfileScreen(
     var groupName by remember { mutableStateOf("") }
     var groupCode by remember { mutableStateOf("") }
     var inviteEmail by remember { mutableStateOf("") }
+    var showGroupDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -50,91 +52,184 @@ fun ProfileScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
 
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .appBackground()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            item {
-                Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
-                    Column {
-                        Text("👤 Profile", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                        Text(user?.email ?: "No email found")
+            // 🔹 SCROLLABLE CONTENT
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 120.dp) // 👈 space for buttons
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                item {
+                    Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
+                        Column {
+                            Text("👤 Profile", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                            Text(user?.email ?: "No email found")
+                        }
                     }
                 }
-            }
 
-            item {
-                Button(
-                    onClick = { ThemeManager.toggleTheme() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isDark) "Switch to Light Mode" else "Switch to Dark Mode")
+                item {
+                    Button(
+                        onClick = { ThemeManager.toggleTheme() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (isDark) "Switch to Light Mode" else "Switch to Dark Mode")
+                    }
                 }
-            }
 
-            item {
-                Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
-                    Column {
-                        Text("👨‍👩‍👧 Family Mode", fontWeight = FontWeight.Bold)
+                item {
+                    Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
+                        Column {
+                            Text("👨‍👩‍👧 Family Mode", fontWeight = FontWeight.Bold)
 
-                        Switch(
-                            checked = isShared,
-                            onCheckedChange = { enabled ->
+                            Switch(
+                                checked = isShared,
+                                onCheckedChange = { enabled ->
 
-                                val groupId = transactionViewModel.currentGroupId
+                                    val groupId = transactionViewModel.currentGroupId
 
-                                if (enabled) {
-                                    if (groupId.isNotEmpty()) {
-                                        transactionViewModel.setSharedMode(true, groupId)
+                                    if (enabled) {
+                                        if (groupId.isNotEmpty()) {
+                                            transactionViewModel.setSharedMode(true, groupId)
+                                        } else {
+                                            transactionViewModel.setSharedMode(true, null)
+                                        }
                                     } else {
-                                        transactionViewModel.setSharedMode(true, null)
+                                        transactionViewModel.setSharedMode(false)
                                     }
-                                } else {
-                                    transactionViewModel.setSharedMode(false)
-                                }
 
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        if (enabled) "Family Mode ON"
-                                        else "Personal Mode ON"
-                                    )
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (enabled) "Family Mode ON"
+                                            else "Personal Mode ON"
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (isShared) {
+
+                    item {
+                        Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
+                            Column {
+                                Text("Create Group", fontWeight = FontWeight.Bold)
+
+                                OutlinedTextField(
+                                    value = groupName,
+                                    onValueChange = { groupName = it },
+                                    label = { Text("Group Name") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Button(
+                                    onClick = {
+                                        if (groupName.isNotBlank()) {
+                                            transactionViewModel.createGroup(groupName) { groupId ->
+                                                groupName = ""
+
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(
+                                                        if (groupId.isNotEmpty())
+                                                            "Group created 🎉"
+                                                        else
+                                                            "Failed ❌"
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Create Group")
                                 }
                             }
-                        )
+                        }
+                    }
+
+                    item {
+                        Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
+                            Column {
+                                Text("Join Group", fontWeight = FontWeight.Bold)
+
+                                OutlinedTextField(
+                                    value = groupCode,
+                                    onValueChange = { groupCode = it },
+                                    label = { Text("Group Code") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Button(
+                                    onClick = {
+                                        if (groupCode.isNotBlank()) {
+                                            transactionViewModel.joinGroup(groupCode) { groupId ->
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(
+                                                        if (!groupId.isNullOrEmpty())
+                                                            "Joined group ✅"
+                                                        else
+                                                            "Invalid / Not invited ❌"
+                                                    )
+                                                }
+                                            }
+                                            groupCode = ""
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Join Group")
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Button(
+                            onClick = { showGroupDialog = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Select Group")
+                        }
                     }
                 }
-            }
-
-            if (isShared) {
 
                 item {
                     Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
                         Column {
-                            Text("Create Group", fontWeight = FontWeight.Bold)
+                            Text("Invite Member", fontWeight = FontWeight.Bold)
 
                             OutlinedTextField(
-                                value = groupName,
-                                onValueChange = { groupName = it },
-                                label = { Text("Group Name") },
+                                value = inviteEmail,
+                                onValueChange = { inviteEmail = it },
+                                label = { Text("Email") },
                                 modifier = Modifier.fillMaxWidth()
                             )
 
                             Button(
                                 onClick = {
-                                    if (groupName.isNotBlank()) {
-                                        transactionViewModel.createGroup(groupName) {
-                                            groupName = ""
+                                    if (inviteEmail.isNotBlank()) {
+                                        transactionViewModel.inviteUser(inviteEmail)
+                                        inviteEmail = ""
+
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Invite sent 📩")
                                         }
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Create Group")
+                                Text("Send Invite")
                             }
                         }
                     }
@@ -143,113 +238,39 @@ fun ProfileScreen(
                 item {
                     Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
                         Column {
-                            Text("Join Group", fontWeight = FontWeight.Bold)
+                            Text("👥 Active Group", fontWeight = FontWeight.Bold)
+                            Text("Name: ${currentGroupName.ifEmpty { "None" }}")
 
-                            OutlinedTextField(
-                                value = groupCode,
-                                onValueChange = { groupCode = it },
-                                label = { Text("Group Code") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Button(
-                                onClick = {
-                                    if (groupCode.isNotBlank()) {
-                                        transactionViewModel.joinGroup(groupCode)
-                                        groupCode = ""
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Join Group")
+                            Card {
+                                Text(
+                                    currentGroupCode.ifEmpty { "No Code" },
+                                    modifier = Modifier.padding(12.dp),
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
-            }
 
-            val uid = user?.uid ?: ""
-            val safeEmail = user?.email?.trim()?.lowercase()?.replace(".", ",") ?: ""
+                item {
+                    Text("📜 Transaction History", fontWeight = FontWeight.Bold)
+                }
 
-            items(groups) { g ->
-
-                val canUse =
-                    g.createdBy == uid ||
-                            (g.members.containsKey(uid) &&
-                                    g.invitedEmails.containsKey(safeEmail))
-
-                Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
-                    Column {
-                        Text("Name: ${g.name}", fontWeight = FontWeight.Bold)
-                        Text("Code: ${g.code}")
-
-                        if (canUse) {
-                            Button(
-                                onClick = {
-                                    transactionViewModel.setSharedMode(true, g.id)
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Use This Group")
-                            }
-                        }
-                    }
+                items(transactions) { tx ->
+                    TransactionItem(tx, {}, {})
                 }
             }
 
-            item {
-                Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
-                    Column {
-                        Text("Invite Member", fontWeight = FontWeight.Bold)
+            // 🔥 FIXED FOOTER BUTTONS
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
 
-                        OutlinedTextField(
-                            value = inviteEmail,
-                            onValueChange = { inviteEmail = it },
-                            label = { Text("Email") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Button(
-                            onClick = {
-                                if (inviteEmail.isNotBlank()) {
-                                    transactionViewModel.inviteUser(inviteEmail)
-                                    inviteEmail = ""
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Send Invite")
-                        }
-                    }
-                }
-            }
-
-            item {
-                Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
-                    Column {
-                        Text("👥 Active Group", fontWeight = FontWeight.Bold)
-                        Text("Name: ${currentGroupName.ifEmpty { "None" }}")
-
-                        Card {
-                            Text(
-                                currentGroupCode.ifEmpty { "No Code" },
-                                modifier = Modifier.padding(12.dp),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text("📜 Transaction History", fontWeight = FontWeight.Bold)
-            }
-
-            items(transactions) { tx ->
-                TransactionItem(tx, {}, {})
-            }
-
-            item {
                 Button(
                     onClick = {
                         FirebaseAuth.getInstance().signOut()
@@ -264,9 +285,7 @@ fun ProfileScreen(
                 ) {
                     Text("Sign Out")
                 }
-            }
 
-            item {
                 Button(
                     onClick = { navController.popBackStack() },
                     modifier = Modifier.fillMaxWidth()
@@ -274,6 +293,68 @@ fun ProfileScreen(
                     Text("Back")
                 }
             }
+        }
+
+        // 🔹 GROUP SELECT DIALOG (unchanged)
+        if (showGroupDialog) {
+
+            val uid = user?.uid ?: ""
+            val safeEmail = user?.email
+                ?.trim()
+                ?.lowercase()
+                ?.replace(".", ",") ?: ""
+
+            AlertDialog(
+                onDismissRequest = { showGroupDialog = false },
+                title = { Text("Select Group") },
+                text = {
+                    LazyColumn {
+                        items(groups) { g ->
+
+                            val canUse =
+                                g.createdBy == uid ||
+                                        (g.members.containsKey(uid) &&
+                                                g.invitedEmails.containsKey(safeEmail))
+
+                            if (canUse) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            transactionViewModel.setSharedMode(true, g.id)
+                                            showGroupDialog = false
+
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Group activated ✅")
+                                            }
+                                        }
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(g.name, fontWeight = FontWeight.Bold)
+                                        Text("Code: ${g.code}", fontSize = 12.sp)
+                                    }
+
+                                    val currentId = transactionViewModel.currentGroupId
+
+                                    if (g.id == currentId) {
+                                        Text("ACTIVE", color = MaterialTheme.colorScheme.primary)
+                                    } else {
+                                        Text("✔")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showGroupDialog = false }) {
+                        Text("Close")
+                    }
+                }
+            )
         }
     }
 }
