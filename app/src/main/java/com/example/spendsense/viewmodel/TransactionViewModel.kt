@@ -19,10 +19,13 @@ class TransactionViewModel : ViewModel() {
 
     private val repo = FirestoreRepository()
 
+
     // ================= STATES =================
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions
-
+    private var lastSelectedGroupId: String? = null
+    private var lastModeShared: Boolean = false
+    private var lastAlertShownAt = 0L
     private val _income = MutableStateFlow(0.0)
     val income: StateFlow<Double> = _income
 
@@ -63,9 +66,8 @@ class TransactionViewModel : ViewModel() {
 
     private var currentGroupIdInternal: String? = null
 
-    private var lastAlertShownAt = 0L
 
-    // 🔥 NEW: FIRESTORE LISTENER (CRITICAL FIX)
+    // 🔥 FIRESTORE LISTENER
     private var transactionListener: ListenerRegistration? = null
 
     // ================= SESSION =================
@@ -103,12 +105,18 @@ class TransactionViewModel : ViewModel() {
     // ================= TRANSACTIONS =================
     fun loadTransactions() {
 
-        // 🔥 VERY IMPORTANT
         transactionListener?.remove()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
+        // 🔥 CASE 1: FAMILY MODE WITHOUT GROUP → EMPTY
+        if (_isSharedMode.value && currentGroupIdInternal.isNullOrEmpty()) {
+            updateTransactionState(emptyList())
+            return
+        }
+
+        // 🔥 CASE 2: GROUP MODE
+        if (_isSharedMode.value) {
 
             transactionListener =
                 repo.listenGroupTransactions(currentGroupIdInternal!!) { list ->
@@ -117,6 +125,7 @@ class TransactionViewModel : ViewModel() {
 
         } else {
 
+            // 🔥 CASE 3: PERSONAL MODE
             transactionListener =
                 repo.listenPersonalTransactions(uid) { list ->
                     updateTransactionState(list)
@@ -124,7 +133,6 @@ class TransactionViewModel : ViewModel() {
         }
     }
 
-    // 🔥 NEW: CENTRALIZED STATE UPDATE
     private fun updateTransactionState(list: List<Transaction>) {
         val incomeList = list.filter { it.type == "INCOME" }
         val expenseList = list.filter { it.type == "EXPENSE" }
@@ -142,18 +150,9 @@ class TransactionViewModel : ViewModel() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
-
-            repo.addGroupTransaction(
-                currentGroupIdInternal!!,
-                transaction.copy(userId = uid)
-            )
-
+            repo.addGroupTransaction(currentGroupIdInternal!!, transaction.copy(userId = uid))
         } else {
-
-            repo.addPersonalTransaction(
-                uid,
-                transaction.copy(userId = uid)
-            )
+            repo.addPersonalTransaction(uid, transaction.copy(userId = uid))
         }
     }
 
@@ -161,29 +160,16 @@ class TransactionViewModel : ViewModel() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
-
-            repo.updateGroupTransaction(
-                currentGroupIdInternal!!,
-                transaction.copy(userId = uid)
-            )
-
+            repo.updateGroupTransaction(currentGroupIdInternal!!, transaction.copy(userId = uid))
         } else {
-
-            repo.updatePersonalTransaction(
-                uid,
-                transaction.copy(userId = uid)
-            )
+            repo.updatePersonalTransaction(uid, transaction.copy(userId = uid))
         }
     }
 
     fun delete(id: String) {
-
         if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
-
             repo.deleteGroupTransaction(currentGroupIdInternal!!, id)
-
         } else {
-
             val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
             repo.deletePersonalTransaction(uid, id)
         }
@@ -191,7 +177,8 @@ class TransactionViewModel : ViewModel() {
 
     // ================= BUDGET =================
     fun loadBudget() {
-        val baseId = if (_isSharedMode.value && currentGroupIdInternal != null)
+
+        val baseId = if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty())
             currentGroupIdInternal!!
         else
             FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -204,7 +191,8 @@ class TransactionViewModel : ViewModel() {
     }
 
     fun setBudget(value: Double, type: BudgetType) {
-        val baseId = if (_isSharedMode.value && currentGroupIdInternal != null)
+
+        val baseId = if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty())
             currentGroupIdInternal!!
         else
             FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -225,6 +213,7 @@ class TransactionViewModel : ViewModel() {
             _currentGroupId.value = groupId
             _isSharedMode.value = true
 
+            clearData()
             loadAllData()
             loadGroupInfo(groupId)
 
@@ -243,11 +232,11 @@ class TransactionViewModel : ViewModel() {
                 _currentGroupId.value = groupId
                 _isSharedMode.value = true
 
+                clearData()
                 loadAllData()
                 loadGroupInfo(groupId)
             }
 
-            // 🔥 IMPORTANT → send result back to UI
             onResult(groupId)
         }
     }
@@ -255,7 +244,6 @@ class TransactionViewModel : ViewModel() {
     private val _userGroups = MutableStateFlow<List<Group>>(emptyList())
     val userGroups: StateFlow<List<Group>> = _userGroups
 
-    // ================= GROUP INFO =================
     fun loadGroupInfo(groupId: String) {
         val user = FirebaseAuth.getInstance().currentUser ?: return
         val uid = user.uid
@@ -273,48 +261,9 @@ class TransactionViewModel : ViewModel() {
                 val isMember = group.members.containsKey(uid)
 
                 _currentGroupCode.value =
-                    if ((isCreator || isInvited) && isMember) {
-                        group.code
-                    } else {
-                        ""
-                    }
+                    if ((isCreator || isInvited) && isMember) group.code else ""
             }
         }
-    }
-
-    // ================= ALERT =================
-    private fun recalculateBudgetAndAlert() {
-        val budgetValue = _budget.value
-        val expense = _expense.value
-
-        if (budgetValue <= 0) return
-
-        val percent = (expense / budgetValue) * 100
-        _budgetUsedPercent.value = percent
-
-        if (percent >= 80) {
-            val now = System.currentTimeMillis()
-            if (now - lastAlertShownAt > 30000) {
-                _budgetAlertEvent.value = true
-                lastAlertShownAt = now
-            }
-        }
-    }
-
-    fun resetBudgetAlert() {
-        _budgetAlertEvent.value = false
-    }
-
-    // ================= HELPERS =================
-    fun getMostSpentCategory(): String {
-        val expenseList = _transactions.value.filter { it.type == "EXPENSE" }
-
-        if (expenseList.isEmpty()) return "No Data"
-
-        return expenseList
-            .groupBy { it.category }
-            .maxByOrNull { it.value.sumOf { t -> t.amount } }
-            ?.key ?: "No Data"
     }
 
     // ================= MODE SWITCH =================
@@ -322,21 +271,35 @@ class TransactionViewModel : ViewModel() {
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
+        lastModeShared = enabled   // 🔥 SAVE MODE
+
         if (enabled) {
-            if (groupId.isNullOrEmpty()) return
+
+            _isSharedMode.value = true
+
+            if (groupId.isNullOrEmpty()) {
+                currentGroupIdInternal = null
+                _currentGroupId.value = ""
+                clearData()
+                return
+            }
+
+            // 🔥 SAVE GROUP
+            lastSelectedGroupId = groupId
 
             currentGroupIdInternal = groupId
             _currentGroupId.value = groupId
-            _isSharedMode.value = true
 
             loadGroupInfo(groupId)
 
         } else {
+
+            _isSharedMode.value = false
             currentGroupIdInternal = uid
             _currentGroupId.value = uid
-            _isSharedMode.value = false
         }
 
+        clearData()
         loadAllData()
     }
 
@@ -356,14 +319,77 @@ class TransactionViewModel : ViewModel() {
     }
 
     fun initAfterLogin() {
+
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        // default → personal mode
-        if (!_isSharedMode.value) {
+        if (lastModeShared) {
+
+            _isSharedMode.value = true
+
+            if (!lastSelectedGroupId.isNullOrEmpty()) {
+
+                currentGroupIdInternal = lastSelectedGroupId
+                _currentGroupId.value = lastSelectedGroupId!!
+
+                loadGroupInfo(lastSelectedGroupId!!)
+
+            } else {
+
+                currentGroupIdInternal = null
+                _currentGroupId.value = ""
+            }
+
+        } else {
+
+            _isSharedMode.value = false
             currentGroupIdInternal = uid
             _currentGroupId.value = uid
         }
 
+        clearData()
         loadAllData()
+    }
+
+    // ================= HELPERS =================
+    fun getMostSpentCategory(): String {
+        val expenseList = _transactions.value.filter { it.type == "EXPENSE" }
+
+        if (expenseList.isEmpty()) return "No Data"
+
+        return expenseList
+            .groupBy { it.category }
+            .maxByOrNull { it.value.sumOf { t -> t.amount } }
+            ?.key ?: "No Data"
+    }
+
+    fun resetBudgetAlert() {
+        _budgetAlertEvent.value = false
+    }
+    private fun recalculateBudgetAndAlert() {
+
+        val budgetValue = _budget.value
+        val expenseValue = _expense.value
+
+        if (budgetValue <= 0) {
+            _budgetUsedPercent.value = 0.0
+            _budgetAlert.value = false
+            return
+        }
+
+        val percent = (expenseValue / budgetValue) * 100
+
+        _budgetUsedPercent.value = percent
+
+        // 🔥 update alert state
+        _budgetAlert.value = percent >= 80
+
+        // 🔥 event trigger (with cooldown)
+        if (percent >= 80) {
+            val now = System.currentTimeMillis()
+            if (now - lastAlertShownAt > 30000) {
+                _budgetAlertEvent.value = true
+                lastAlertShownAt = now
+            }
+        }
     }
 }
