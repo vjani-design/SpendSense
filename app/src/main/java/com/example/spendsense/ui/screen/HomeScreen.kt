@@ -62,10 +62,22 @@ fun HomeScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
 
-    LaunchedEffect(Unit) {
-        FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-            transactionViewModel.setUserSession(uid)
+    val isSharedMode by transactionViewModel.isSharedMode.collectAsState()
+    val currentGroupId = transactionViewModel.currentGroupId
+
+    LaunchedEffect(isSharedMode, currentGroupId) {
+
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
+
+        if (isSharedMode && currentGroupId.isNotEmpty()) {
+            transactionViewModel.setSharedMode(true, currentGroupId)
+        } else {
+            transactionViewModel.setSharedMode(false)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        transactionViewModel.initAfterLogin()
     }
 
     LaunchedEffect(budgetAlertEvent) {

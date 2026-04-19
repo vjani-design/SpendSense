@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import com.example.spendsense.data.repository.FirestoreRepository
 import com.example.spendsense.model.Transaction
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.spendsense.data.model.Group
+
 enum class BudgetType {
     WEEKLY,
     MONTHLY
@@ -63,16 +65,8 @@ class TransactionViewModel : ViewModel() {
 
     private var lastAlertShownAt = 0L
 
-    // ================= BASE ID =================
-    private fun getBaseId(): String {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
-        return if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
-            currentGroupIdInternal!!
-        } else {
-            uid
-        }
-    }
+    // 🔥 NEW: FIRESTORE LISTENER (CRITICAL FIX)
+    private var transactionListener: ListenerRegistration? = null
 
     // ================= SESSION =================
     fun setUserSession(uid: String) {
@@ -108,49 +102,99 @@ class TransactionViewModel : ViewModel() {
 
     // ================= TRANSACTIONS =================
     fun loadTransactions() {
-        val baseId = getBaseId()
-        if (baseId.isEmpty()) return
 
-        repo.getTransactions(baseId) { list ->
-            val incomeList = list.filter { it.type == "INCOME" }
-            val expenseList = list.filter { it.type == "EXPENSE" }
+        // 🔥 VERY IMPORTANT
+        transactionListener?.remove()
 
-            _transactions.value = list
-            _income.value = incomeList.sumOf { it.amount }
-            _expense.value = expenseList.sumOf { it.amount }
-            _balance.value = _income.value - _expense.value
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-            recalculateBudgetAndAlert()
+        if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
+
+            transactionListener =
+                repo.listenGroupTransactions(currentGroupIdInternal!!) { list ->
+                    updateTransactionState(list)
+                }
+
+        } else {
+
+            transactionListener =
+                repo.listenPersonalTransactions(uid) { list ->
+                    updateTransactionState(list)
+                }
         }
     }
 
+    // 🔥 NEW: CENTRALIZED STATE UPDATE
+    private fun updateTransactionState(list: List<Transaction>) {
+        val incomeList = list.filter { it.type == "INCOME" }
+        val expenseList = list.filter { it.type == "EXPENSE" }
+
+        _transactions.value = list
+        _income.value = incomeList.sumOf { it.amount }
+        _expense.value = expenseList.sumOf { it.amount }
+        _balance.value = _income.value - _expense.value
+
+        recalculateBudgetAndAlert()
+    }
+
+    // ================= CRUD =================
     fun add(transaction: Transaction) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val baseId = getBaseId()
 
-        repo.addTransaction(transaction.copy(userId = uid, groupId = baseId)) {
-            loadAllData()
+        if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
+
+            repo.addGroupTransaction(
+                currentGroupIdInternal!!,
+                transaction.copy(userId = uid)
+            )
+
+        } else {
+
+            repo.addPersonalTransaction(
+                uid,
+                transaction.copy(userId = uid)
+            )
         }
     }
 
     fun update(transaction: Transaction) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val baseId = getBaseId()
 
-        repo.updateTransaction(transaction.copy(userId = uid, groupId = baseId)) {
-            loadAllData()
+        if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
+
+            repo.updateGroupTransaction(
+                currentGroupIdInternal!!,
+                transaction.copy(userId = uid)
+            )
+
+        } else {
+
+            repo.updatePersonalTransaction(
+                uid,
+                transaction.copy(userId = uid)
+            )
         }
     }
 
     fun delete(id: String) {
-        val baseId = getBaseId()
-        repo.deleteTransaction(baseId, id) { loadAllData() }
+
+        if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
+
+            repo.deleteGroupTransaction(currentGroupIdInternal!!, id)
+
+        } else {
+
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+            repo.deletePersonalTransaction(uid, id)
+        }
     }
 
     // ================= BUDGET =================
     fun loadBudget() {
-        val baseId = getBaseId()
-        if (baseId.isEmpty()) return
+        val baseId = if (_isSharedMode.value && currentGroupIdInternal != null)
+            currentGroupIdInternal!!
+        else
+            FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         repo.getBudget(baseId) { value, type ->
             _budget.value = value
@@ -160,7 +204,11 @@ class TransactionViewModel : ViewModel() {
     }
 
     fun setBudget(value: Double, type: BudgetType) {
-        val baseId = getBaseId()
+        val baseId = if (_isSharedMode.value && currentGroupIdInternal != null)
+            currentGroupIdInternal!!
+        else
+            FirebaseAuth.getInstance().currentUser?.uid ?: return
+
         _budget.value = value
         _budgetType.value = type
 
@@ -198,9 +246,9 @@ class TransactionViewModel : ViewModel() {
             }
         }
     }
+
     private val _userGroups = MutableStateFlow<List<Group>>(emptyList())
     val userGroups: StateFlow<List<Group>> = _userGroups
-
 
     // ================= GROUP INFO =================
     fun loadGroupInfo(groupId: String) {
@@ -208,7 +256,7 @@ class TransactionViewModel : ViewModel() {
         val uid = user.uid
         val email = user.email ?: ""
 
-        val safeEmail = email.replace(".", ",") // ✅ FIX
+        val safeEmail = email.replace(".", ",")
 
         repo.getGroup(groupId) { group ->
             if (group != null) {
@@ -216,7 +264,7 @@ class TransactionViewModel : ViewModel() {
                 _currentGroupName.value = group.name
 
                 val isCreator = group.createdBy == uid
-                val isInvited = group.invitedEmails.containsKey(safeEmail) // ✅ FIX
+                val isInvited = group.invitedEmails.containsKey(safeEmail)
                 val isMember = group.members.containsKey(uid)
 
                 _currentGroupCode.value =
@@ -264,21 +312,24 @@ class TransactionViewModel : ViewModel() {
             ?.key ?: "No Data"
     }
 
+    // ================= MODE SWITCH =================
     fun setSharedMode(enabled: Boolean, groupId: String? = null) {
-        _isSharedMode.value = enabled
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        currentGroupIdInternal = if (enabled) {
-            groupId ?: currentGroupIdInternal ?: uid
+        if (enabled) {
+            if (groupId.isNullOrEmpty()) return
+
+            currentGroupIdInternal = groupId
+            _currentGroupId.value = groupId
+            _isSharedMode.value = true
+
+            loadGroupInfo(groupId)
+
         } else {
-            uid
-        }
-
-        _currentGroupId.value = currentGroupIdInternal ?: ""
-
-        if (enabled && currentGroupIdInternal != null) {
-            loadGroupInfo(currentGroupIdInternal!!)
+            currentGroupIdInternal = uid
+            _currentGroupId.value = uid
+            _isSharedMode.value = false
         }
 
         loadAllData()
@@ -288,6 +339,7 @@ class TransactionViewModel : ViewModel() {
         val groupId = currentGroupIdInternal ?: return
         repo.inviteUser(groupId, email) {}
     }
+
     fun loadUserGroups() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
@@ -296,5 +348,17 @@ class TransactionViewModel : ViewModel() {
                 it.createdBy == uid || it.members.containsKey(uid)
             }
         }
+    }
+
+    fun initAfterLogin() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        // default → personal mode
+        if (!_isSharedMode.value) {
+            currentGroupIdInternal = uid
+            _currentGroupId.value = uid
+        }
+
+        loadAllData()
     }
 }

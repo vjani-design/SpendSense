@@ -4,30 +4,67 @@ import com.example.spendsense.model.Transaction
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.spendsense.data.model.Group
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ListenerRegistration
 
 class FirestoreRepository {
 
     private val db = FirebaseFirestore.getInstance()
 
-    // ================= TRANSACTIONS =================
+    // ================= PERSONAL TRANSACTIONS =================
 
-    fun addTransaction(transaction: Transaction, onResult: (Boolean) -> Unit) {
+    fun listenPersonalTransactions(
+        userId: String,
+        onResult: (List<Transaction>) -> Unit
+    ): ListenerRegistration {
 
-        val docRef = db.collection("groups")
-            .document(transaction.groupId)
+        return db.collection("users")
+            .document(userId)
+            .collection("transactions")
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    onResult(snap.toObjects(Transaction::class.java))
+                } else {
+                    onResult(emptyList())
+                }
+            }
+    }
+
+    fun addPersonalTransaction(userId: String, transaction: Transaction) {
+
+        val docRef = db.collection("users")
+            .document(userId)
             .collection("transactions")
             .document()
 
         val data = transaction.copy(id = docRef.id)
 
         docRef.set(data)
-            .addOnSuccessListener { onResult(true) }
-            .addOnFailureListener { onResult(false) }
     }
 
-    fun getTransactions(groupId: String, onResult: (List<Transaction>) -> Unit) {
+    fun updatePersonalTransaction(userId: String, transaction: Transaction) {
+        db.collection("users")
+            .document(userId)
+            .collection("transactions")
+            .document(transaction.id)
+            .set(transaction)
+    }
 
-        db.collection("groups")
+    fun deletePersonalTransaction(userId: String, id: String) {
+        db.collection("users")
+            .document(userId)
+            .collection("transactions")
+            .document(id)
+            .delete()
+    }
+
+    // ================= GROUP TRANSACTIONS =================
+
+    fun listenGroupTransactions(
+        groupId: String,
+        onResult: (List<Transaction>) -> Unit
+    ): ListenerRegistration {
+
+        return db.collection("groups")
             .document(groupId)
             .collection("transactions")
             .addSnapshotListener { snap, _ ->
@@ -39,61 +76,79 @@ class FirestoreRepository {
             }
     }
 
-    fun deleteTransaction(groupId: String, id: String, onResult: (Boolean) -> Unit) {
+    fun addGroupTransaction(groupId: String, transaction: Transaction) {
 
+        val docRef = db.collection("groups")
+            .document(groupId)
+            .collection("transactions")
+            .document()
+
+        val data = transaction.copy(id = docRef.id)
+
+        docRef.set(data)
+    }
+
+    fun updateGroupTransaction(groupId: String, transaction: Transaction) {
+        db.collection("groups")
+            .document(groupId)
+            .collection("transactions")
+            .document(transaction.id)
+            .set(transaction)
+    }
+
+    fun deleteGroupTransaction(groupId: String, id: String) {
         db.collection("groups")
             .document(groupId)
             .collection("transactions")
             .document(id)
             .delete()
-            .addOnSuccessListener { onResult(true) }
-            .addOnFailureListener { onResult(false) }
-    }
-
-    fun updateTransaction(transaction: Transaction, onResult: (Boolean) -> Unit) {
-
-        db.collection("groups")
-            .document(transaction.groupId)
-            .collection("transactions")
-            .document(transaction.id)
-            .set(transaction)
-            .addOnSuccessListener { onResult(true) }
-            .addOnFailureListener { onResult(false) }
     }
 
     // ================= BUDGET =================
 
-    fun saveBudget(groupId: String, budget: Double, type: String) {
+    fun saveBudget(baseId: String, budget: Double, type: String) {
 
         val data = mapOf(
             "budget" to budget,
             "type" to type
         )
 
-        db.collection("groups")
-            .document(groupId)
-            .collection("budget")
+        val path = if (isGroup(baseId)) {
+            db.collection("groups").document(baseId)
+        } else {
+            db.collection("users").document(baseId)
+        }
+
+        path.collection("budget")
             .document("main")
             .set(data)
     }
 
-    fun getBudget(groupId: String, onResult: (Double, String) -> Unit) {
+    fun getBudget(baseId: String, onResult: (Double, String) -> Unit) {
 
-        db.collection("groups")
-            .document(groupId)
-            .collection("budget")
+        val path = if (isGroup(baseId)) {
+            db.collection("groups").document(baseId)
+        } else {
+            db.collection("users").document(baseId)
+        }
+
+        path.collection("budget")
             .document("main")
             .get()
             .addOnSuccessListener {
-
                 val budget = it.getDouble("budget") ?: 0.0
                 val type = it.getString("type") ?: "MONTHLY"
-
                 onResult(budget, type)
             }
             .addOnFailureListener {
                 onResult(0.0, "MONTHLY")
             }
+    }
+
+    // 🔥 helper
+    private fun isGroup(id: String): Boolean {
+        // simple assumption: groups stored separately
+        return db.collection("groups").document(id).id == id
     }
 
     // ================= GROUPS =================
@@ -128,7 +183,7 @@ class FirestoreRepository {
     // ================= INVITE =================
     fun inviteUser(groupId: String, email: String, onResult: (Boolean) -> Unit) {
 
-        val safeEmail = email.trim().lowercase().replace(".", ",") // ✅ FIX
+        val safeEmail = email.trim().lowercase().replace(".", ",")
 
         db.collection("groups")
             .document(groupId)
@@ -154,9 +209,8 @@ class FirestoreRepository {
                     val currentEmail = FirebaseAuth
                         .getInstance().currentUser?.email ?: ""
 
-                    val safeEmail = currentEmail.trim().lowercase().replace(".", ",") // ✅ FIX
+                    val safeEmail = currentEmail.trim().lowercase().replace(".", ",")
 
-                    // ✅ ONLY ALLOW IF INVITED
                     if (group?.invitedEmails?.containsKey(safeEmail) == true) {
 
                         db.collection("groups")
@@ -188,10 +242,8 @@ class FirestoreRepository {
             .document(groupId)
             .get()
             .addOnSuccessListener { doc ->
-
                 if (doc.exists()) {
-                    val group = doc.toObject(Group::class.java)
-                    onResult(group)
+                    onResult(doc.toObject(Group::class.java))
                 } else {
                     onResult(null)
                 }
@@ -200,6 +252,7 @@ class FirestoreRepository {
                 onResult(null)
             }
     }
+
     fun getAllGroups(onResult: (List<Group>) -> Unit) {
         db.collection("groups")
             .get()
