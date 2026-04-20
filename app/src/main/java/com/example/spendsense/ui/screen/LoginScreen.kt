@@ -33,6 +33,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.example.spendsense.ui.theme.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spendsense.viewmodel.TransactionViewModel
+import com.example.spendsense.data.repository.AuthRepository
 
 // 🔥 NEW IMPORT
 import androidx.compose.ui.res.painterResource
@@ -49,6 +50,7 @@ fun LoginScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val repo = AuthRepository()
 
     Column(
         modifier = Modifier
@@ -202,7 +204,11 @@ fun LoginScreen(navController: NavController) {
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = { }) {
+                    TextButton(
+                        onClick = {
+                            navController.navigate("forgot_password")
+                        }
+                    ) {
                         Text("Forgot Password?")
                     }
                 }
@@ -218,18 +224,26 @@ fun LoginScreen(navController: NavController) {
 
                         isLoading = true
 
-                        FirebaseAuth.getInstance()
-                            .signInWithEmailAndPassword(email, password)
-                            .addOnSuccessListener {
+                        val repo = AuthRepository()
+
+                        repo.loginHybrid(email, password) { success, error ->
+
+                            if (success) {
+
+                                val sharedPref = context.getSharedPreferences("user_session", 0)
+                                sharedPref.edit().putString("email", email).apply()
+
                                 transactionViewModel.clearData()
+
                                 navController.navigate("home") {
                                     popUpTo("login") { inclusive = true }
                                 }
-                            }
-                            .addOnFailureListener {
+
+                            } else {
                                 isLoading = false
-                                Toast.makeText(context, it.localizedMessage, Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, error ?: "Login failed", Toast.LENGTH_LONG).show()
                             }
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

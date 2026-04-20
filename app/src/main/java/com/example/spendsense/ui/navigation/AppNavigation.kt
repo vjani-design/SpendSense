@@ -2,6 +2,7 @@ package com.example.spendsense.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,6 +19,8 @@ import com.example.spendsense.ui.screens.ReportsScreen
 import com.example.spendsense.ui.screens.SignupScreen
 import com.example.spendsense.ui.screens.SplashScreen
 import com.example.spendsense.viewmodel.TransactionViewModel
+import com.example.spendsense.ui.screens.ForgotPasswordEmailScreen
+import com.example.spendsense.ui.screens.ResetPasswordScreen
 
 @Composable
 fun AppNavigation() {
@@ -38,6 +41,25 @@ fun AppNavigation() {
         composable("budget") { BudgetScreen(navController, transactionViewModel) }
         composable("reports") {
             ReportsScreen(navController, transactionViewModel)
+        }
+
+        composable("forgot_password") {
+            ForgotPasswordEmailScreen(navController)
+        }
+
+        composable(
+            route = "reset_password/{docId}",
+            arguments = listOf(navArgument("docId") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+
+            val docId = backStackEntry.arguments?.getString("docId") ?: ""
+
+            ResetPasswordScreen(
+                docId = docId,
+                navController = navController
+            )
         }
 
         composable(

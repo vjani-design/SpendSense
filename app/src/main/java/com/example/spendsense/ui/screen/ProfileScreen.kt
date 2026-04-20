@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,6 +30,10 @@ fun ProfileScreen(
     val currentGroupCode by transactionViewModel.currentGroupCode.collectAsState()
     val isDark = ThemeManager.isDarkTheme
     val user = FirebaseAuth.getInstance().currentUser
+
+    val context = LocalContext.current
+    val sharedPref = context.getSharedPreferences("user_session", 0)
+    val savedEmail = sharedPref.getString("email", null)
 
     val transactions by transactionViewModel.transactions.collectAsState()
     val isShared by transactionViewModel.isSharedMode.collectAsState()
@@ -71,8 +76,7 @@ fun ProfileScreen(
                     Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
                         Column {
                             Text("👤 Profile", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                            Text(user?.email ?: "No email found")
-                        }
+                            Text(user?.email ?: savedEmail ?: "No email found")                        }
                     }
                 }
 
@@ -248,6 +252,8 @@ fun ProfileScreen(
 
                 Button(
                     onClick = {
+                        val sharedPref = context.getSharedPreferences("user_session", 0)
+                        sharedPref.edit().clear().apply()
                         FirebaseAuth.getInstance().signOut()
                         navController.navigate("login") {
                             popUpTo(0) { inclusive = true }
