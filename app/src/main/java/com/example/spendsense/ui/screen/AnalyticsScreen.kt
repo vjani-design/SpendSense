@@ -22,11 +22,11 @@ fun AnalyticsScreen(
     val transactions by viewModel.transactions.collectAsState()
 
     val expenseList = remember(transactions) {
-        transactions.filter { it.type == "EXPENSE" }
+        transactions.filter { it.type == "expense" }
     }
 
     val incomeList = remember(transactions) {
-        transactions.filter { it.type == "INCOME" }
+        transactions.filter { it.type == "income" }
     }
 
     val totalExpense = remember(expenseList) {
@@ -102,10 +102,7 @@ fun AnalyticsScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        IncomeExpensePieChart(
-            income = totalIncome.toFloat(),
-            expense = totalExpense.toFloat()
-        )
+        IncomeExpensePieChart(transactions)
 
         Spacer(modifier = Modifier.height(24.dp))
 

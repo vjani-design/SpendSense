@@ -71,8 +71,7 @@ fun ReportsScreen(
 
         // ================= PIE CHART =================
         IncomeExpensePieChart(
-            income = income.toFloat(),
-            expense = expense.toFloat(),
+            transactions = transactions,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(250.dp),

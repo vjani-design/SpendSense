@@ -9,6 +9,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.spendsense.data.model.Group
+import kotlinx.coroutines.flow.filter
 
 enum class BudgetType {
     WEEKLY,
@@ -72,9 +73,16 @@ class TransactionViewModel : ViewModel() {
 
     // ================= SESSION =================
     fun setUserSession(uid: String) {
+
+        // 🔥 stop any old listener (important for account switch)
+        transactionListener?.remove()
+
         _isSharedMode.value = false
+
         currentGroupIdInternal = uid
         _currentGroupId.value = uid
+
+        clearData()
         loadAllData()
     }
 
@@ -105,18 +113,19 @@ class TransactionViewModel : ViewModel() {
     // ================= TRANSACTIONS =================
     fun loadTransactions() {
 
+        // 🔥 Always remove previous listener
         transactionListener?.remove()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        // 🔥 CASE 1: FAMILY MODE WITHOUT GROUP → EMPTY
+        // 🔴 CASE 1: FAMILY MODE but NO GROUP → EMPTY
         if (_isSharedMode.value && currentGroupIdInternal.isNullOrEmpty()) {
             updateTransactionState(emptyList())
             return
         }
 
-        // 🔥 CASE 2: GROUP MODE
-        if (_isSharedMode.value) {
+        // 🔵 CASE 2: GROUP MODE
+        if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
 
             transactionListener =
                 repo.listenGroupTransactions(currentGroupIdInternal!!) { list ->
@@ -125,7 +134,10 @@ class TransactionViewModel : ViewModel() {
 
         } else {
 
-            // 🔥 CASE 3: PERSONAL MODE
+            // 🟢 CASE 3: PERSONAL MODE (FORCE USER CONTEXT)
+            currentGroupIdInternal = uid
+            _currentGroupId.value = uid
+
             transactionListener =
                 repo.listenPersonalTransactions(uid) { list ->
                     updateTransactionState(list)
@@ -134,10 +146,16 @@ class TransactionViewModel : ViewModel() {
     }
 
     private fun updateTransactionState(list: List<Transaction>) {
-        val incomeList = list.filter { it.type == "INCOME" }
-        val expenseList = list.filter { it.type == "EXPENSE" }
 
         _transactions.value = list
+
+        val incomeList = list.filter {
+            it.type.equals("income", ignoreCase = true)
+        }
+
+        val expenseList = list.filter {
+            it.type.equals("expense", ignoreCase = true)
+        }
         _income.value = incomeList.sumOf { it.amount }
         _expense.value = expenseList.sumOf { it.amount }
         _balance.value = _income.value - _expense.value
@@ -271,7 +289,10 @@ class TransactionViewModel : ViewModel() {
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        lastModeShared = enabled   // 🔥 SAVE MODE
+        // 🔥 STOP OLD LISTENER (VERY IMPORTANT)
+        transactionListener?.remove()
+
+        lastModeShared = enabled
 
         if (enabled) {
 
@@ -294,12 +315,17 @@ class TransactionViewModel : ViewModel() {
 
         } else {
 
+            // 🔥 FORCE PERSONAL MODE CLEANLY
             _isSharedMode.value = false
+
             currentGroupIdInternal = uid
             _currentGroupId.value = uid
         }
 
+        // 🔥 CLEAR OLD DATA (PREVENT MIX)
         clearData()
+
+        // 🔥 RELOAD FROM CORRECT SOURCE
         loadAllData()
     }
 
@@ -356,7 +382,9 @@ class TransactionViewModel : ViewModel() {
 
     // ================= HELPERS =================
     fun getMostSpentCategory(): String {
-        val expenseList = _transactions.value.filter { it.type == "EXPENSE" }
+        val expenseList = _transactions.value.filter {
+            it.type.equals("expense", ignoreCase = true)
+        }
 
         if (expenseList.isEmpty()) return "No Data"
 

@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -110,7 +111,14 @@ fun ProfileScreen(
                                             if (enabled) "Family Mode ON" else "Personal Mode ON"
                                         )
                                     }
-                                }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFF3B82F6), // blue
+
+                                    uncheckedThumbColor = if (isDark) Color.Black else Color.White,
+                                    uncheckedTrackColor = if (isDark) Color.White else Color.Black
+                                )
                             )
                         }
                     }

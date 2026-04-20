@@ -90,7 +90,7 @@ fun SplashScreen(navController: NavController) {
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(R.drawable.spendsense_logo),
+                    painter = painterResource(R.drawable.updated_logo),
                     contentDescription = null,
                     modifier = Modifier.size(95.dp)
                 )

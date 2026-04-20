@@ -12,8 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -66,9 +64,7 @@ fun HomeScreen(
     val currentGroupId = transactionViewModel.currentGroupId
 
     LaunchedEffect(isSharedMode, currentGroupId) {
-
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
-
         if (isSharedMode && currentGroupId.isNotEmpty()) {
             transactionViewModel.setSharedMode(true, currentGroupId)
         } else {
@@ -190,7 +186,6 @@ fun HomeScreen(
                 }
             }
 
-
             // 🔹 BUDGET
             Column(Modifier.padding(horizontal = 16.dp)) {
 
@@ -231,9 +226,7 @@ fun HomeScreen(
 
                 LinearProgressIndicator(
                     progress = (budgetPercent / 100).toFloat(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
                     color = if (budgetAlert) Color.Red else MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 )
@@ -247,55 +240,94 @@ fun HomeScreen(
                 Text(if (showAnalytics) "Hide Analytics" else "Show Analytics", fontWeight = FontWeight.Bold)
             }
 
-            // 🔷 ANALYTICS
-            if (showAnalytics) {
+            // 🔽 SCROLLABLE AREA
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 120.dp)
+            ) {
 
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+                if (showAnalytics) {
 
-                    Text(
-                        "Pie Chart",
-                        color = textColor,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            selectedChart = if (selectedChart == "PIE") "" else "PIE"
+                    item {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+
+                            Button(
+                                onClick = {
+                                    selectedChart = if (selectedChart == "PIE") "" else "PIE"
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedChart == "PIE")
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Text(
+                                    "Pie Chart",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    selectedChart = if (selectedChart == "BAR") "" else "BAR"
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedChart == "BAR")
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Text(
+                                    "Bar Chart",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
-                    )
+                    }
 
-                    Text(
-                        "Bar Chart",
-                        color = textColor,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            selectedChart = if (selectedChart == "BAR") "" else "BAR"
+                    item {
+                        Box(
+                            Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
+                                .height(250.dp)   // 🔥 THIS IS THE FIX
+                        ) {
+                            when (selectedChart) {
+
+                                "PIE" -> IncomeExpensePieChart(transactions)
+
+                                "BAR" -> MonthlyBarChart(transactions)
+
+                                else -> Text(
+                                    "Select a chart",
+                                    color = textColor.copy(0.7f)
+                                )
+                            }
                         }
-                    )
-                }
-
-                Box(Modifier.padding(16.dp)) {
-                    when (selectedChart) {
-                        "PIE" -> IncomeExpensePieChart(income.toFloat(), expense.toFloat())
-                        "BAR" -> MonthlyBarChart(transactions)
-                        else -> Text("Select a chart", color = textColor.copy(0.7f), fontWeight = FontWeight.Bold)
                     }
                 }
-            }
 
-            // 🔷 HISTORY
-            Text(
-                "Recent Activity",
-                Modifier.padding(16.dp),
-                color = textColor,
-                fontWeight = FontWeight.Bold
-            )
+                item {
+                    Text(
+                        "Recent Activity",
+                        Modifier.padding(16.dp),
+                        color = textColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f)
-            ) {
                 items(sortedList) { item ->
-
                     SwipeToDeleteItem(
                         onDelete = { transactionViewModel.delete(item.id) }
                     ) {

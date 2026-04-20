@@ -112,10 +112,10 @@ fun AddIncomeScreen(
 
                 val tx = Transaction(
                     id = "",
-                    type = "INCOME",
+                    type = "income",                 // ⚠️ lowercase (important)
                     category = "Income",
                     amount = amt,
-                    note = description,
+                    description = description,       // ✅ FIX HERE
                     timestamp = selectedDateMillis
                 )
 

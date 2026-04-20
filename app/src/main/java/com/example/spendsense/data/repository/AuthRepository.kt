@@ -140,42 +140,18 @@ class AuthRepository(
     // =========================
 // LOGIN WITH FIRESTORE (NEW)
 // =========================
-    fun loginHybrid(
+    fun loginWithFirestore(
         email: String,
         password: String,
         onResult: (Boolean, String?) -> Unit
     ) {
-        val db = FirebaseFirestore.getInstance()
-
-        db.collection("users")
-            .whereEqualTo("email", email.trim().lowercase())
-            .get()
-            .addOnSuccessListener { result ->
-
-                if (!result.isEmpty) {
-                    // ✅ Found in Firestore
-                    val storedPassword = result.documents[0].getString("password")
-
-                    if (storedPassword == password) {
-                        onResult(true, null)
-                    } else {
-                        onResult(false, "Wrong password")
-                    }
-
-                } else {
-                    // 🔁 Fallback to Firebase Auth
-                    FirebaseAuth.getInstance()
-                        .signInWithEmailAndPassword(email, password)
-                        .addOnSuccessListener {
-                            onResult(true, null)
-                        }
-                        .addOnFailureListener {
-                            onResult(false, "User not found")
-                        }
-                }
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener {
+                onResult(true, null)
             }
             .addOnFailureListener {
                 onResult(false, it.message)
             }
     }
+
 }

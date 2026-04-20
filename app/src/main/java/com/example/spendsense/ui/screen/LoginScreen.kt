@@ -224,17 +224,18 @@ fun LoginScreen(navController: NavController) {
 
                         isLoading = true
 
-                        val repo = AuthRepository()
+                        val sharedPref = context.getSharedPreferences("user_session", 0)
 
-                        repo.loginHybrid(email, password) { success, error ->
+                        repo.loginWithFirestore(email, password) { success, error ->
 
                             if (success) {
 
-                                val sharedPref = context.getSharedPreferences("user_session", 0)
+                                // ✅ SAVE USER EMAIL
                                 sharedPref.edit().putString("email", email).apply()
 
-                                transactionViewModel.clearData()
-
+                                transactionViewModel.setUserSession(
+                                    FirebaseAuth.getInstance().currentUser!!.uid
+                                )
                                 navController.navigate("home") {
                                     popUpTo("login") { inclusive = true }
                                 }

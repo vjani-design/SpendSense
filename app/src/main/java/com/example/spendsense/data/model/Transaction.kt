@@ -12,5 +12,7 @@ data class Transaction(
     val timestamp: Long = System.currentTimeMillis(),
     var isRecurring: Boolean = false,
     var recurrenceType: String? = null,
-    var nextDueDate: Long? = null
+    var nextDueDate: Long? = null,
+    val description: String = "",   // ✅ add this
+
 )

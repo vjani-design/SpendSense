@@ -201,14 +201,13 @@ fun AddExpenseScreen(
 
                 val tx = Transaction(
                     id = "",
-                    type = "EXPENSE",
+                    type = "expense",                 // ✅ lowercase (IMPORTANT)
                     category = category,
                     amount = amt,
-                    note = description,
+                    description = description,        // ✅ FIXED
                     paymentMethod = paymentMethod,
                     timestamp = selectedDateMillis
                 )
-
                 scope.launch {
                     transactionViewModel.add(tx)
 
