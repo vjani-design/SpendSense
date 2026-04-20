@@ -12,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -162,26 +164,91 @@ fun HomeScreen(
             Spacer(Modifier.height(16.dp))
 
             // 🔹 BALANCE
-            Column(Modifier.padding(16.dp)) {
 
-                Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
-                    Text(
-                        "Balance: ₹$balance",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally   // 🔥 CENTER EVERYTHING
+            ) {
+                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+                val cardBrush = if (isDark) {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF1A2340),  // slightly lighter than bg
+                            Color(0xFF121A30)   // subtle depth
+                        )
                     )
+                } else {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFFFFFFF),
+                            Color(0xFFF1F5F9)
+                        )
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(cardBrush)   // 🔥 APPLY GRADIENT HERE
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center   // 🔥 CENTER TEXT INSIDE BOX
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            "TOTAL BALANCE",
+                            fontSize = 14.sp,
+                            color = textColor.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        Text(
+                            "₹$balance",
+                            fontSize = 36.sp,   // 🔥 BIG SIZE
+                            fontWeight = FontWeight.Bold,
+                            color = textColor
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 Row {
-                    Box(Modifier.weight(1f).appGlass().padding(12.dp)) {
-                        Text("Income: ₹$income", color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .appGlass()
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Income: ₹$income",
+                            color = Color(0xFF00C853),
+                            fontWeight = FontWeight.Bold
+                        )
                     }
+
                     Spacer(Modifier.width(10.dp))
-                    Box(Modifier.weight(1f).appGlass().padding(12.dp)) {
-                        Text("Expense: ₹$expense", color = Color(0xFFD50000), fontWeight = FontWeight.Bold)
+
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .appGlass()
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Expense: ₹$expense",
+                            color = Color(0xFFD50000),
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

@@ -189,41 +189,41 @@ fun ProfileScreen(
                     }
 
                     item {
+                        Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
+                            Column {
+                                Text("Invite Member", fontWeight = FontWeight.Bold)
+
+                                OutlinedTextField(
+                                    value = inviteEmail,
+                                    onValueChange = { inviteEmail = it },
+                                    label = { Text("Email") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Button(
+                                    onClick = {
+                                        if (inviteEmail.isNotBlank()) {
+                                            transactionViewModel.inviteUser(inviteEmail)
+                                            inviteEmail = ""
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Invite sent 📩")
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Send Invite")
+                                }
+                            }
+                        }
+                    }
+
+                    item {
                         Button(
                             onClick = { showGroupDialog = true },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Select Group")
-                        }
-                    }
-                }
-
-                item {
-                    Box(Modifier.fillMaxWidth().appGlass().padding(12.dp)) {
-                        Column {
-                            Text("Invite Member", fontWeight = FontWeight.Bold)
-
-                            OutlinedTextField(
-                                value = inviteEmail,
-                                onValueChange = { inviteEmail = it },
-                                label = { Text("Email") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Button(
-                                onClick = {
-                                    if (inviteEmail.isNotBlank()) {
-                                        transactionViewModel.inviteUser(inviteEmail)
-                                        inviteEmail = ""
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Invite sent 📩")
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Send Invite")
-                            }
                         }
                     }
                 }
@@ -243,6 +243,16 @@ fun ProfileScreen(
                             }
                         }
                     }
+                }
+
+                item {
+                    Text(
+                        "Transaction History",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(top = 12.dp, bottom = 6.dp)
+                    )
                 }
 
                 items(transactions) { tx ->
