@@ -22,7 +22,13 @@ class FirestoreRepository {
             .collection("transactions")
             .addSnapshotListener { snap, _ ->
                 if (snap != null) {
-                    onResult(snap.toObjects(Transaction::class.java))
+
+                    val list = snap.documents.mapNotNull { doc ->
+                        doc.toObject(Transaction::class.java)?.copy(id = doc.id)
+                    }
+
+                    onResult(list)
+
                 } else {
                     onResult(emptyList())
                 }
@@ -69,7 +75,13 @@ class FirestoreRepository {
             .collection("transactions")
             .addSnapshotListener { snap, _ ->
                 if (snap != null) {
-                    onResult(snap.toObjects(Transaction::class.java))
+
+                    val list = snap.documents.mapNotNull { doc ->
+                        doc.toObject(Transaction::class.java)?.copy(id = doc.id)
+                    }
+
+                    onResult(list)
+
                 } else {
                     onResult(emptyList())
                 }

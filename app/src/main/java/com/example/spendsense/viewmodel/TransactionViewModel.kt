@@ -127,11 +127,27 @@ class TransactionViewModel : ViewModel() {
         // 🔵 CASE 2: GROUP MODE
         if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
 
-            transactionListener =
-                repo.listenGroupTransactions(currentGroupIdInternal!!) { list ->
-                    updateTransactionState(list)
+            val groupId = currentGroupIdInternal!!
+
+            // 🔒 CHECK USER ACCESS BEFORE LISTENING
+            repo.getGroup(groupId) { group ->
+
+                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@getGroup
+
+                val isMember = group?.members?.containsKey(uid) == true
+
+                if (!isMember) {
+                    // 🚫 BLOCK ACCESS COMPLETELY
+                    updateTransactionState(emptyList())
+                    return@getGroup
                 }
 
+                // ✅ SAFE → NOW LISTEN
+                transactionListener =
+                    repo.listenGroupTransactions(groupId) { list ->
+                        updateTransactionState(list)
+                    }
+            }
         } else {
 
             // 🟢 CASE 3: PERSONAL MODE (FORCE USER CONTEXT)
@@ -272,14 +288,18 @@ class TransactionViewModel : ViewModel() {
         repo.getGroup(groupId) { group ->
             if (group != null) {
 
-                _currentGroupName.value = group.name
-
                 val isCreator = group.createdBy == uid
                 val isInvited = group.invitedEmails.containsKey(safeEmail)
                 val isMember = group.members.containsKey(uid)
 
-                _currentGroupCode.value =
-                    if ((isCreator || isInvited) && isMember) group.code else ""
+                // 🔒 ONLY SHOW DATA IF USER HAS ACCESS
+                if ((isCreator || isInvited) && isMember) {
+                    _currentGroupName.value = group.name
+                    _currentGroupCode.value = group.code
+                } else {
+                    _currentGroupName.value = "None"
+                    _currentGroupCode.value = ""
+                }
             }
         }
     }
@@ -335,12 +355,17 @@ class TransactionViewModel : ViewModel() {
     }
 
     fun loadUserGroups() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val uid = user.uid
+        val email = user.email ?: ""
+        val safeEmail = email.replace(".", ",")
 
         repo.getAllGroups { list ->
             _userGroups.value = list.filter {
-                it.createdBy == uid || it.members.containsKey(uid)
-            }
+                it.createdBy == uid ||
+                        it.members.containsKey(uid) ||
+                        it.invitedEmails.containsKey(safeEmail)   // 🔥 FIX
+            }.distinctBy { it.id }
         }
     }
 

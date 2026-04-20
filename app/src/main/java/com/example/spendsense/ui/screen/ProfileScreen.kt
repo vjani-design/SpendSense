@@ -98,18 +98,29 @@ fun ProfileScreen(
                             Switch(
                                 checked = isShared,
                                 onCheckedChange = { enabled ->
-                                    val groupId = transactionViewModel.currentGroupId
 
                                     if (enabled) {
-                                        transactionViewModel.setSharedMode(true, groupId.ifEmpty { null })
+                                        val groupId = transactionViewModel.currentGroupId
+
+                                        if (groupId.isNotEmpty()) {
+                                            transactionViewModel.setSharedMode(true, groupId)
+
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Family Mode ON")
+                                            }
+
+                                        } else {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Please select a group first")
+                                            }
+                                        }
+
                                     } else {
                                         transactionViewModel.setSharedMode(false)
-                                    }
 
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            if (enabled) "Family Mode ON" else "Personal Mode ON"
-                                        )
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Personal Mode ON")
+                                        }
                                     }
                                 },
                                 colors = SwitchDefaults.colors(
@@ -305,63 +316,139 @@ fun ProfileScreen(
 
                             val isOwner = g.createdBy == uid
                             val isMember = g.members.containsKey(uid)
+                            val isInvited = g.invitedEmails.containsKey(
+                                (user?.email ?: "").replace(".", ",")
+                            )
+                            Text(
+                                when {
+                                    isOwner -> "👑 Owner"
+                                    isMember -> "👤 Member"
+                                    else -> "📩 Invited"
+                                },
+                                fontSize = 11.sp
+                            )
+
+                            val hasAccess = isOwner || isMember || isInvited
 
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable(enabled = isOwner || isMember) {
-                                        transactionViewModel.setSharedMode(true, g.id)
-                                        showGroupDialog = false
-
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Group activated ✅")
-                                        }
-                                    }
                                     .padding(12.dp)
                             ) {
 
-                                Text(g.name, fontWeight = FontWeight.Bold)
-                                Text("Code: ${g.code}")
+                                if (hasAccess) {
 
-                                Text(
-                                    when {
-                                        isOwner -> "👑 Owner"
-                                        isMember -> "👤 Member"
-                                        else -> "Guest"
-                                    },
-                                    fontSize = 11.sp
-                                )
+                                    Text(g.name, fontWeight = FontWeight.Bold)
+                                    Text("Code: ${g.code}")
+                                    Text("Owner: ${g.createdBy}")
 
-                                if (g.invitedEmails.isNotEmpty()) {
-                                    Text("Invited:")
-                                    g.invitedEmails.keys.forEach {
-                                        val email = it.replace(",", ".")
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                    Text(
+                                        when {
+                                            isOwner -> "👑 Owner"
+                                            isMember -> "👤 Member"
+                                            else -> "📩 Invited"
+                                        },
+                                        fontSize = 11.sp
+                                    )
+                                    if (isInvited && !isMember) {
+                                        Spacer(Modifier.height(6.dp))
+
+                                        Button(
+                                            onClick = {
+                                                transactionViewModel.joinGroup(g.code) {
+                                                    showGroupDialog = false
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar("Joined successfully ✅")
+                                                    }
+                                                }
+                                            },
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Text(email)
+                                            Text("Join Group")
+                                        }
+                                    }
 
-                                            if (isOwner) {
-                                                Text(
-                                                    "Remove",
-                                                    color = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.clickable {
-                                                        transactionViewModel.removeInvite(g.id, it)
-                                                    }
-                                                )
+                                    Spacer(Modifier.height(6.dp))
+
+                                    // MEMBERS
+                                    if (g.members.isNotEmpty()) {
+                                        Text("Members:")
+                                        g.members.keys.forEach {
+                                            Text("• $it", fontSize = 12.sp)
+                                        }
+                                    }
+
+                                    Spacer(Modifier.height(6.dp))
+
+                                    // INVITED
+                                    if (g.invitedEmails.isNotEmpty()) {
+                                        Text("Invited:")
+
+                                        g.invitedEmails.keys.forEach { safeEmail ->
+                                            val email = safeEmail.replace(",", ".")
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(email)
+
+                                                if (isOwner) {
+                                                    Text(
+                                                        "Remove",
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.clickable {
+                                                            transactionViewModel.removeInvite(g.id, safeEmail)
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                if (isOwner) {
-                                    Button(
-                                        onClick = {},
-                                        modifier = Modifier.fillMaxWidth()
+                                    Spacer(Modifier.height(8.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Edit Group")
+
+                                        Button(
+                                            onClick = {
+                                                transactionViewModel.setSharedMode(true, g.id)
+                                                showGroupDialog = false
+
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar("Group activated ✅")
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("Activate")
+                                        }
+
+                                        Spacer(Modifier.width(8.dp))
+
+                                        Button(
+                                            onClick = {
+                                                transactionViewModel.setSharedMode(false)
+                                                showGroupDialog = false
+
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar("Group deactivated ❌")
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.error
+                                            )
+                                        ) {
+                                            Text("Deactivate")
+                                        }
                                     }
+
+                                } else {
+                                    Text("No Access", color = Color.Gray)
                                 }
                             }
 

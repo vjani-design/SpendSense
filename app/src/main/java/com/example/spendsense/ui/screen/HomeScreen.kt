@@ -56,14 +56,21 @@ fun HomeScreen(
     val budgetAlertEvent by transactionViewModel.budgetAlertEvent.collectAsState()
     val budgetPercent by transactionViewModel.budgetUsedPercent.collectAsState()
 
-    val sortedList = remember(transactions) {
-        transactions.sortedByDescending { it.timestamp }
+    // ✅ MOVE THESE ABOVE (VERY IMPORTANT)
+    val isSharedMode by transactionViewModel.isSharedMode.collectAsState()
+    val currentGroupId = transactionViewModel.currentGroupId
+
+// ✅ SIMPLE + SAFE FILTER (NO EXTRA FIELDS)
+    val safeTransactions = remember(transactions, isSharedMode, currentGroupId) {
+        transactions
+    }
+
+    val sortedList = remember(safeTransactions) {
+        safeTransactions.sortedByDescending { it.timestamp }
     }
 
     val textColor = MaterialTheme.colorScheme.onBackground
 
-    val isSharedMode by transactionViewModel.isSharedMode.collectAsState()
-    val currentGroupId = transactionViewModel.currentGroupId
 
     LaunchedEffect(isSharedMode, currentGroupId) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
