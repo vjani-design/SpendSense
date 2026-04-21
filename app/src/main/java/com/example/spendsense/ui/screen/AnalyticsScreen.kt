@@ -1,6 +1,8 @@
 package com.example.spendsense.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,11 +24,11 @@ fun AnalyticsScreen(
     val transactions by viewModel.transactions.collectAsState()
 
     val expenseList = remember(transactions) {
-        transactions.filter { it.type == "expense" }
+        transactions.filter { it.type.uppercase() == "EXPENSE" }
     }
 
     val incomeList = remember(transactions) {
-        transactions.filter { it.type == "income" }
+        transactions.filter { it.type.uppercase() == "INCOME" }
     }
 
     val totalExpense = remember(expenseList) {
@@ -54,6 +56,7 @@ fun AnalyticsScreen(
             .fillMaxSize()
             .appBackground()
             .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
 
         Text(
@@ -74,15 +77,15 @@ fun AnalyticsScreen(
             Column(modifier = Modifier.padding(16.dp)) {
 
                 Text(
-                    "💰 Income: $totalIncome",
+                    text = "💰 Income: ₹${"%.2f".format(totalIncome)}" ,
+                            color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "💸 Expense: ₹${"%.2f".format(totalExpense)}",
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    "💸 Expense: $totalExpense",
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    "📊 Balance: $balance",
+                    text = "📊 Balance: ₹${"%.2f".format(balance)}",
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(

@@ -17,6 +17,7 @@ import com.example.spendsense.ui.theme.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.google.firebase.Timestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,8 +116,9 @@ fun AddIncomeScreen(
                     type = "income",                 // ⚠️ lowercase (important)
                     category = "Income",
                     amount = amt,
-                    description = description,       // ✅ FIX HERE
-                    timestamp = selectedDateMillis
+                    description = description, // ✅ FIX HERE
+                    date = Timestamp(Date(selectedDateMillis)),   // ✅ FIX
+                    createdAt = Timestamp.now()
                 )
 
                 scope.launch {

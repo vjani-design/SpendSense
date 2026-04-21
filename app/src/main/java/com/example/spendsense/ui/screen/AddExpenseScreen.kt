@@ -19,6 +19,7 @@ import com.example.spendsense.ui.theme.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.google.firebase.Timestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +207,8 @@ fun AddExpenseScreen(
                     amount = amt,
                     description = description,        // ✅ FIXED
                     paymentMethod = paymentMethod,
-                    timestamp = selectedDateMillis
+                    date = Timestamp(Date(selectedDateMillis)),   // ✅ FIX
+                    createdAt = Timestamp.now()
                 )
                 scope.launch {
                     transactionViewModel.add(tx)

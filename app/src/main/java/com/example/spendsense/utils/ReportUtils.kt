@@ -3,24 +3,30 @@ package com.example.spendsense.utils
 import android.content.Context
 import com.example.spendsense.model.Transaction
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 object ReportUtils {
 
     fun exportCSV(context: Context, list: List<Transaction>): File {
 
         val file = File(context.filesDir, "spendsense_report.csv")
+        val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
         file.printWriter().use { out ->
 
-            // CSV HEADER
-            out.println("ID,Type,Category,Amount,Timestamp,Note")
+            out.println("ID,Type,Category,Amount,Date,Note")
 
             list.forEach {
 
                 val safeNote = it.note.replace(",", " ")
 
+                val dateString = it.date?.toDate()?.let {
+                    formatter.format(it)
+                } ?: ""
+
                 out.println(
-                    "${it.id},${it.type},${it.category},${it.amount},${it.timestamp},$safeNote"
+                    "${it.id},${it.type},${it.category},${it.amount},$dateString,$safeNote"
                 )
             }
         }

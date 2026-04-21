@@ -28,10 +28,10 @@ fun TransactionItem(
 ) {
 
     val isExpense = transaction.type.equals("EXPENSE", true)
-
-    val formattedDate = remember(transaction.timestamp) {
-        SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-            .format(Date(transaction.timestamp))
+    val formattedDate = remember(transaction.date) {
+        transaction.date?.toDate()?.let {
+            SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(it)
+        } ?: "No Date"
     }
 
     val amountColor = if (isExpense) Color(0xFFD50000) else Color(0xFF00C853)

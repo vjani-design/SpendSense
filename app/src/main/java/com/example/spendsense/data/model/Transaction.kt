@@ -1,18 +1,30 @@
 package com.example.spendsense.model
 
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Exclude
+
 data class Transaction(
-    val id: String = "",
-    val userId: String = "",
-    val groupId: String = "",   // ✅ REQUIRED
-    val type: String = "",
-    val category: String = "",
+
+    @get:Exclude
+    var id: String = "",   // not stored in Firestore
+
     val amount: Double = 0.0,
+    val type: String = "",           // "EXPENSE" / "INCOME"
+    val category: String = "",
     val note: String = "",
     val paymentMethod: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
+
+    val date: Timestamp? = null,
+    val createdAt: Timestamp? = null,
+
+    // group only
+    val paidBy: String? = null,
+    val splitBetween: List<String> = emptyList(),
+
+    // recurring
     var isRecurring: Boolean = false,
     var recurrenceType: String? = null,
-    var nextDueDate: Long? = null,
-    val description: String = "",   // ✅ add this
+    var nextDueDate: Timestamp? = null,
 
+    val description: String = ""
 )

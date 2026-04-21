@@ -9,7 +9,10 @@ object ReportFilterUtils {
         start: Long,
         end: Long
     ): List<Transaction> {
-        return list.filter { it.timestamp in start..end }
+        return list.filter { txn ->
+            val time = txn.date?.toDate()?.time ?: return@filter false
+            time in start..end
+        }
     }
 
     fun filterByCategory(

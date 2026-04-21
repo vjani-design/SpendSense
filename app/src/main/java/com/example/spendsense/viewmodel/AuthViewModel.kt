@@ -6,6 +6,9 @@ import com.example.spendsense.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 
 class AuthViewModel : ViewModel() {
 
@@ -33,6 +36,7 @@ class AuthViewModel : ViewModel() {
     // INIT CHECK (AUTO LOGIN CHECK)
     // =========================
     init {
+        FirebaseAuth.getInstance().signOut()   // 🔥 ADD THIS
         _isLoggedIn.value = repo.isLoggedIn()
     }
 
@@ -47,6 +51,7 @@ class AuthViewModel : ViewModel() {
             _isLoading.value = false
 
             if (success) {
+                ensureUserDocument()   // 🔥 ADD THIS
                 _isLoggedIn.value = true
             } else {
                 _errorMessage.value = error ?: "Login failed"
@@ -65,6 +70,7 @@ class AuthViewModel : ViewModel() {
             _isLoading.value = false
 
             if (success) {
+                ensureUserDocument()   // 🔥 ADD THIS
                 _isLoggedIn.value = true
             } else {
                 _errorMessage.value = error ?: "Registration failed"
@@ -92,5 +98,32 @@ class AuthViewModel : ViewModel() {
     // =========================
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    private fun ensureUserDocument() {
+
+        val user = FirebaseAuth.getInstance().currentUser ?: run {
+            println("❌ USER NULL")
+            return
+        }
+
+        val db = FirebaseFirestore.getInstance()
+        val ref = db.collection("users").document(user.uid)
+
+        val nameFromEmail = user.email?.substringBefore("@") ?: "User"
+
+        val data = mapOf(
+            "uid" to user.uid,
+            "email" to (user.email ?: ""),
+            "name" to (user.displayName ?: nameFromEmail),
+        )
+
+        ref.set(data, SetOptions.merge())
+            .addOnSuccessListener {
+                println("✅ USER SAVED IN FIRESTORE")
+            }
+            .addOnFailureListener {
+                println("❌ FIRESTORE ERROR: ${it.message}")
+            }
     }
 }

@@ -66,7 +66,7 @@ fun HomeScreen(
     }
 
     val sortedList = remember(safeTransactions) {
-        safeTransactions.sortedByDescending { it.timestamp }
+        safeTransactions.sortedByDescending { it.date?.toDate()?.time ?: 0L }
     }
 
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -217,7 +217,7 @@ fun HomeScreen(
                         Spacer(Modifier.height(6.dp))
 
                         Text(
-                            "₹$balance",
+                            "₹%.2f".format(balance),
                             fontSize = 36.sp,   // 🔥 BIG SIZE
                             fontWeight = FontWeight.Bold,
                             color = textColor
@@ -375,11 +375,12 @@ fun HomeScreen(
                             Modifier
                                 .padding(16.dp)
                                 .fillMaxWidth()
-                                .height(250.dp)   // 🔥 THIS IS THE FIX
+                                .height(200.dp)
                         ) {
                             when (selectedChart) {
 
-                                "PIE" -> IncomeExpensePieChart(transactions)
+                                "PIE" ->
+                                        IncomeExpensePieChart(transactions = transactions)
 
                                 "BAR" -> MonthlyBarChart(transactions)
 

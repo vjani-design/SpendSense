@@ -34,11 +34,13 @@ fun MonthlyBarChart(
             if (transactions.isEmpty()) return@AndroidView chart
 
             // 🔥 GROUP BY MONTH
-            val grouped = transactions.groupBy { t ->
-                val cal = Calendar.getInstance()
-                cal.timeInMillis = t.timestamp
-                cal.get(Calendar.MONTH) + 1
-            }
+            val grouped = transactions
+                .filter { it.date != null }
+                .groupBy { t ->
+                    val cal = Calendar.getInstance()
+                    cal.time = t.date!!.toDate()
+                    cal.get(Calendar.MONTH) + 1
+                }
 
             val months = grouped.keys.sorted()
 
@@ -51,11 +53,11 @@ fun MonthlyBarChart(
                 val list = grouped[month] ?: emptyList()
 
                 val income = list.filter {
-                    it.type.equals("income", ignoreCase = true)
+                    it.type.uppercase() == "INCOME"
                 }.sumOf { it.amount }
 
                 val expense = list.filter {
-                    it.type.equals("expense", ignoreCase = true)
+                    it.type.uppercase() == "EXPENSE"
                 }.sumOf { it.amount }
 
                 val x = index.toFloat()

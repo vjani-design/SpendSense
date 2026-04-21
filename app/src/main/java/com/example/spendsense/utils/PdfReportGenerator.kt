@@ -62,7 +62,6 @@ object PdfReportGenerator {
         val pdf = PdfDocument(PdfWriter(outputStream))
         val document = Document(pdf)
 
-        // COLORS
         val blue = DeviceRgb(30, 70, 120)
         val border = DeviceRgb(220, 220, 220)
         val green = DeviceRgb(56, 142, 60)
@@ -71,7 +70,7 @@ object PdfReportGenerator {
 
         val date = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
 
-        // ================= HEADER =================
+        // HEADER
         document.add(
             Paragraph("SpendSense Financial Report")
                 .setFontSize(26f)
@@ -92,7 +91,7 @@ object PdfReportGenerator {
 
         document.add(Paragraph("\n"))
 
-        // ================= USER ROW =================
+        // USER ROW
         val userTable = Table(UnitValue.createPercentArray(floatArrayOf(1f, 1f)))
             .useAllAvailableWidth()
 
@@ -102,7 +101,7 @@ object PdfReportGenerator {
         document.add(userTable)
         document.add(Paragraph("\n"))
 
-        // ================= SUMMARY CARDS =================
+        // SUMMARY
         val summary = Table(UnitValue.createPercentArray(4)).useAllAvailableWidth()
 
         fun card(title: String, value: String, color: DeviceRgb): Cell {
@@ -118,29 +117,36 @@ object PdfReportGenerator {
                 )
         }
 
-        summary.addCell(card("Balance", "₹$balance", blue))
-        summary.addCell(card("Income", "₹$income", green))
-        summary.addCell(card("Expense", "₹$expense", red))
-        summary.addCell(card("Budget", "₹$budget", blue))
+        summary.addCell(card("Balance", "₹%.2f".format(balance), blue))
+        summary.addCell(card("Income", "₹%.2f".format(income), green))
+        summary.addCell(card("Expense", "₹%.2f".format(expense), red))
+        summary.addCell(card("Budget", "₹%.2f".format(budget), blue))
 
         document.add(summary)
         document.add(Paragraph("\n"))
 
-        // ================= CHARTS =================
+        // CHARTS
         val chartTable = Table(UnitValue.createPercentArray(2)).useAllAvailableWidth()
 
         fun centeredChart(bitmap: Bitmap?): Cell {
-            val stream = ByteArrayOutputStream()
-            bitmap?.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            return if (bitmap != null) {
+                val stream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
 
-            val image = Image(ImageDataFactory.create(stream.toByteArray()))
-                .scaleToFit(300f, 230f)
-                .setHorizontalAlignment(HorizontalAlignment.CENTER)
+                val image = Image(ImageDataFactory.create(stream.toByteArray()))
+                    .scaleToFit(300f, 230f)
+                    .setHorizontalAlignment(HorizontalAlignment.CENTER)
 
-            return Cell()
-                .setPadding(10f)
-                .setBorder(SolidBorder(border, 0.5f))
-                .add(image)
+                Cell()
+                    .setPadding(10f)
+                    .setBorder(SolidBorder(border, 0.5f))
+                    .add(image)
+            } else {
+                Cell()
+                    .setPadding(10f)
+                    .setBorder(SolidBorder(border, 0.5f))
+                    .add(Paragraph("No chart available").setTextAlignment(TextAlignment.CENTER))
+            }
         }
 
         chartTable.addCell(centeredChart(pieBitmap))
@@ -149,7 +155,7 @@ object PdfReportGenerator {
         document.add(chartTable)
         document.add(Paragraph("\n"))
 
-        // ================= INSIGHTS =================
+        // INSIGHTS
         val percent = if (income != 0.0) ((expense / income) * 100).toInt() else 0
 
         document.add(
@@ -157,14 +163,14 @@ object PdfReportGenerator {
                 .setBorder(SolidBorder(border, 0.5f))
                 .setPadding(12f)
                 .add(Paragraph("Insights").setBold().setFontSize(16f))
-                .add(Paragraph("• You spent ₹$expense").setFontSize(13f))
+                .add(Paragraph("• You spent ₹%.2f".format(expense)).setFontSize(13f))
                 .add(Paragraph("• Highest spending: $mostSpent").setFontSize(13f))
                 .add(Paragraph("• Expenses = $percent% of income").setFontSize(13f))
         )
 
         document.add(Paragraph("\n"))
 
-        // ================= TRANSACTIONS =================
+        // TRANSACTIONS
         document.add(Paragraph("Transactions").setBold().setFontSize(16f))
 
         val table = Table(UnitValue.createPercentArray(floatArrayOf(2f, 3f, 2f, 2f)))
@@ -187,14 +193,20 @@ object PdfReportGenerator {
         table.addHeaderCell(header("Amount"))
         table.addHeaderCell(header("Date"))
 
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
         transactions.forEachIndexed { i, t ->
 
             val bg = if (i % 2 == 0) DeviceRgb(250, 250, 250) else DeviceRgb(240, 240, 240)
-            val color = if (t.type == "income") green else red
+
+            val isIncome = t.type.equals("INCOME", true)
+            val color = if (isIncome) green else red
+
+            val rowDate = t.date?.toDate()?.let { sdf.format(it) } ?: "-"
 
             table.addCell(
                 Cell().setBackgroundColor(bg).add(
-                    Paragraph(t.type)
+                    Paragraph(t.type.lowercase().replaceFirstChar { it.uppercase() })
                         .setFontColor(color)
                         .setTextAlignment(TextAlignment.CENTER)
                 )
@@ -209,7 +221,7 @@ object PdfReportGenerator {
 
             table.addCell(
                 Cell().setBackgroundColor(bg).add(
-                    Paragraph("₹${t.amount}")
+                    Paragraph("₹%.2f".format(t.amount))
                         .setFontColor(color)
                         .setTextAlignment(TextAlignment.CENTER)
                 )
@@ -217,7 +229,7 @@ object PdfReportGenerator {
 
             table.addCell(
                 Cell().setBackgroundColor(bg).add(
-                    Paragraph(date)
+                    Paragraph(rowDate)
                         .setTextAlignment(TextAlignment.CENTER)
                 )
             )
@@ -227,7 +239,7 @@ object PdfReportGenerator {
 
         document.add(Paragraph("\n"))
 
-        // ================= SUMMARY (LAST) =================
+        // SUMMARY
         document.add(
             Div()
                 .setBorder(SolidBorder(border, 0.5f))
@@ -245,7 +257,6 @@ object PdfReportGenerator {
 
         document.add(Paragraph("\n"))
 
-        // ================= FOOTER =================
         document.add(
             Paragraph("Generated by SpendSense • Stay financially smart")
                 .setTextAlignment(TextAlignment.CENTER)

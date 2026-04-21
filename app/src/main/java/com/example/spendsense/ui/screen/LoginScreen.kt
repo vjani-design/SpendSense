@@ -38,12 +38,16 @@ import com.example.spendsense.data.repository.AuthRepository
 // 🔥 NEW IMPORT
 import androidx.compose.ui.res.painterResource
 import com.example.spendsense.R
+import com.example.spendsense.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(navController: NavController) {
 
     val transactionViewModel: TransactionViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
 
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val error by authViewModel.errorMessage.collectAsState()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -52,6 +56,13 @@ fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
     val repo = AuthRepository()
 
+    LaunchedEffect(error) {
+        error?.let {
+            isLoading = false
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            authViewModel.clearError()
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -200,51 +211,23 @@ fun LoginScreen(navController: NavController) {
 
                 Spacer(Modifier.height(6.dp))
 
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = {
-                            navController.navigate("forgot_password")
-                        }
-                    ) {
-                        Text("Forgot Password?")
-                    }
-                }
-
                 Spacer(Modifier.height(16.dp))
 
                 Button(
                     onClick = {
                         if (email.isBlank() || password.isBlank()) {
-                            Toast.makeText(context, "Email and Password required", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Email and Password required",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@Button
                         }
 
                         isLoading = true
 
-                        val sharedPref = context.getSharedPreferences("user_session", 0)
-
-                        repo.loginWithFirestore(email, password) { success, error ->
-
-                            if (success) {
-
-                                // ✅ SAVE USER EMAIL
-                                sharedPref.edit().putString("email", email).apply()
-
-                                transactionViewModel.setUserSession(
-                                    FirebaseAuth.getInstance().currentUser!!.uid
-                                )
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
-                                }
-
-                            } else {
-                                isLoading = false
-                                Toast.makeText(context, error ?: "Login failed", Toast.LENGTH_LONG).show()
-                            }
-                        }
+                        // ✅ USE VIEWMODEL (IMPORTANT)
+                        authViewModel.login(email, password)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -268,36 +251,55 @@ fun LoginScreen(navController: NavController) {
                         )
                     }
                 }
+
+                Spacer(Modifier.height(20.dp))
+
+                TextButton(onClick = { navController.navigate("signup") }) {
+                    Text(
+                        buildAnnotatedString {
+                            append("New to SpendSense? ")
+                            withStyle(
+                                SpanStyle(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            ) {
+                                append("Sign up")
+                            }
+                        },
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    "Secure login powered by Firebase",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+
+                Spacer(Modifier.height(20.dp))
             }
         }
-
-        Spacer(Modifier.height(20.dp))
-
-        TextButton(onClick = { navController.navigate("signup") }) {
-            Text(
-                buildAnnotatedString {
-                    append("New to SpendSense? ")
-                    withStyle(
-                        SpanStyle(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    ) {
-                        append("Sign up")
-                    }
-                },
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        Text(
-            "Secure login powered by Firebase",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-        )
-
-        Spacer(Modifier.height(20.dp))
     }
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+
+            val uid = FirebaseAuth.getInstance().currentUser!!.uid
+
+            val sharedPref = context.getSharedPreferences("user_session", 0)
+            sharedPref.edit().putString(
+                "email",
+                FirebaseAuth.getInstance().currentUser?.email
+            ).apply()
+
+            transactionViewModel.setUserSession(uid)
+
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
+
 }

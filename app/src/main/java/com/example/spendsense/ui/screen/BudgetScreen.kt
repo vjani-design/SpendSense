@@ -33,7 +33,7 @@ fun BudgetScreen(
     var selectedType by remember { mutableStateOf(BudgetType.MONTHLY) }
 
     LaunchedEffect(currentBudget) {
-        budgetInput = if (currentBudget > 0) currentBudget.toString() else ""
+        budgetInput = if (currentBudget > 0) "%.2f".format(currentBudget) else ""
     }
 
     Column(

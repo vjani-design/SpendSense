@@ -5,6 +5,8 @@ import android.os.Environment
 import com.example.spendsense.model.Transaction
 import java.io.File
 import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 object CsvExporter {
 
@@ -13,20 +15,25 @@ object CsvExporter {
         return try {
 
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-
             if (dir == null) return null
 
             val file = File(dir, "spendsense_report.csv")
-
             val writer = FileWriter(file)
 
-            // HEADER (UNCHANGED)
-            writer.append("ID,TYPE,CATEGORY,AMOUNT,NOTE,PAYMENT,TIMESTAMP\n")
+            val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
-            // DATA (UNCHANGED LOGIC)
+            writer.append("ID,TYPE,CATEGORY,AMOUNT,NOTE,PAYMENT,DATE\n")
+
             list.forEach {
+
+                val safeNote = it.note.replace(",", " ")
+
+                val dateString = it.date?.toDate()?.let {
+                    formatter.format(it)
+                } ?: ""
+
                 writer.append(
-                    "${it.id},${it.type},${it.category},${it.amount},${it.note},${it.paymentMethod},${it.timestamp}\n"
+                    "${it.id},${it.type},${it.category},${it.amount},$safeNote,${it.paymentMethod},$dateString\n"
                 )
             }
 

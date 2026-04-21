@@ -24,15 +24,16 @@ fun IncomeExpensePieChart(
         modifier = modifier
             .fillMaxWidth()
             .height(300.dp),
+
         factory = { context ->
 
             val chart = PieChart(context)
             onChartReady(chart)
 
-            // ✅ GROUPING (income → description, expense → category)
+            // ✅ FIXED GROUPING
             val categoryMap = transactions
                 .groupBy { tx ->
-                    if (tx.type == "income") {
+                    if (tx.type.equals("INCOME", ignoreCase = true)) {
                         "Income - ${tx.description}"
                     } else {
                         "Expense - ${tx.category}"
@@ -46,27 +47,19 @@ fun IncomeExpensePieChart(
                 PieEntry(it.value, it.key)
             }
 
-            // ✅ COLOR SYSTEM (shades)
-            val incomeColors = listOf(
-                "#4CAF50", "#66BB6A", "#81C784", "#A5D6A7"
-            )
-
-            val expenseColors = listOf(
-                "#F44336", "#EF5350", "#E57373", "#EF9A9A"
-            )
-
-            val colors = entries.mapIndexed { index, entry ->
-                if (entry.label.startsWith("Income"))
-                    Color.parseColor(incomeColors[index % incomeColors.size])
+            // ✅ COLORS (CORRECT LOGIC)
+            val colors = entries.map { entry ->
+                if (entry.label.startsWith("Income", ignoreCase = true))
+                    Color.parseColor("#4CAF50")   // GREEN
                 else
-                    Color.parseColor(expenseColors[index % expenseColors.size])
+                    Color.parseColor("#F44336")   // RED
             }
 
             val dataSet = PieDataSet(entries, "").apply {
                 this.colors = colors
                 valueTextSize = 14f
                 valueTextColor = if (isDark) Color.WHITE else Color.BLACK
-                sliceSpace = 3f
+                sliceSpace = 2f
             }
 
             val data = PieData(dataSet)
@@ -76,17 +69,19 @@ fun IncomeExpensePieChart(
             chart.data = data
             chart.isDrawHoleEnabled = false
 
-            chart.setEntryLabelColor(if (isDark) Color.WHITE else Color.BLACK)
+            chart.setEntryLabelColor(
+                if (isDark) Color.WHITE else Color.BLACK
+            )
+
             chart.setEntryLabelTextSize(12f)
 
+            chart.legend.isEnabled = true
             chart.legend.textColor =
                 if (isDark) Color.WHITE else Color.BLACK
 
             chart.description.isEnabled = false
 
-            // ✅ smooth animation (no rotation issue)
-            chart.animateY(800, com.github.mikephil.charting.animation.Easing.EaseInOutQuad)
-
+            chart.animateY(800)
             chart.invalidate()
 
             chart

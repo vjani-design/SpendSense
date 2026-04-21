@@ -100,36 +100,38 @@ fun ReportsScreen(
             onClick = {
 
                 try {
-                    val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Not Logged In"
+                    val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Unknown"
 
-                    // 🔥 CAPTURE BITMAPS HERE (THIS WAS MISSING)
-                    val pieBitmap = pieChartView?.let {
-                        ChartCaptureUtils.captureView(it)
-                    }
+                    android.os.Handler().postDelayed({
 
-                    val barBitmap = barChartView?.let {
-                        ChartCaptureUtils.captureView(it)
-                    }
+                        val pieBitmap = pieChartView?.let {
+                            ChartCaptureUtils.captureView(it)
+                        }
 
-                    val uri = PdfReportGenerator.generateReport(
-                        context = context,
-                        transactions = transactions,
-                        income = income,
-                        expense = expense,
-                        balance = balance,
-                        budget = budget,
-                        mostSpent = mostSpent,
-                        pieBitmap = pieBitmap,
-                        barBitmap = barBitmap,
-                        userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Unknown"
+                        val barBitmap = barChartView?.let {
+                            ChartCaptureUtils.captureView(it)
+                        }
 
-                    )
+                        val uri = PdfReportGenerator.generateReport(
+                            context = context,
+                            transactions = transactions,
+                            income = income,
+                            expense = expense,
+                            balance = balance,
+                            budget = budget,
+                            mostSpent = mostSpent,
+                            pieBitmap = pieBitmap,
+                            barBitmap = barBitmap,
+                            userEmail = userEmail
+                        )
 
-                    if (uri != null) {
-                        Toast.makeText(context, "PDF saved in Downloads", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(context, "PDF failed", Toast.LENGTH_LONG).show()
-                    }
+                        if (uri != null) {
+                            Toast.makeText(context, "PDF saved in Downloads", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "PDF failed", Toast.LENGTH_LONG).show()
+                        }
+
+                    }, 300)
 
                 } catch (e: Exception) {
                     e.printStackTrace()

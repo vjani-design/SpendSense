@@ -166,12 +166,13 @@ class TransactionViewModel : ViewModel() {
         _transactions.value = list
 
         val incomeList = list.filter {
-            it.type.equals("income", ignoreCase = true)
+            it.type.uppercase() == "INCOME"
         }
 
         val expenseList = list.filter {
-            it.type.equals("expense", ignoreCase = true)
+            it.type.uppercase() == "EXPENSE"
         }
+
         _income.value = incomeList.sumOf { it.amount }
         _expense.value = expenseList.sumOf { it.amount }
         _balance.value = _income.value - _expense.value
@@ -184,9 +185,9 @@ class TransactionViewModel : ViewModel() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
-            repo.addGroupTransaction(currentGroupIdInternal!!, transaction.copy(userId = uid))
+            repo.addGroupTransaction(currentGroupIdInternal!!, transaction)
         } else {
-            repo.addPersonalTransaction(uid, transaction.copy(userId = uid))
+            repo.addPersonalTransaction(uid, transaction)
         }
     }
 
@@ -194,9 +195,9 @@ class TransactionViewModel : ViewModel() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         if (_isSharedMode.value && !currentGroupIdInternal.isNullOrEmpty()) {
-            repo.updateGroupTransaction(currentGroupIdInternal!!, transaction.copy(userId = uid))
+            repo.updateGroupTransaction(currentGroupIdInternal!!, transaction)
         } else {
-            repo.updatePersonalTransaction(uid, transaction.copy(userId = uid))
+            repo.updatePersonalTransaction(uid, transaction)
         }
     }
 
@@ -217,7 +218,7 @@ class TransactionViewModel : ViewModel() {
         else
             FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        repo.getBudget(baseId) { value, type ->
+        repo.getBudget(baseId, _isSharedMode.value) { value, type ->
             _budget.value = value
             _budgetType.value = BudgetType.valueOf(type)
             recalculateBudgetAndAlert()
@@ -234,7 +235,7 @@ class TransactionViewModel : ViewModel() {
         _budget.value = value
         _budgetType.value = type
 
-        repo.saveBudget(baseId, value, type.name)
+        repo.saveBudget(baseId, value, type.name, _isSharedMode.value)
         recalculateBudgetAndAlert()
     }
 
