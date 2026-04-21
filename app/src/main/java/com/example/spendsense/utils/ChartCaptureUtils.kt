@@ -1,13 +1,19 @@
 package com.example.spendsense.utils
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.view.View
-import androidx.core.view.drawToBitmap
 
 object ChartCaptureUtils {
 
-    // ✅ REAL & WORKING capture (View-based)
     fun captureView(view: View): Bitmap {
-        return view.drawToBitmap(Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(
+            view.width,
+            view.height,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        view.draw(canvas)
+        return bitmap
     }
 }

@@ -103,11 +103,11 @@ fun ReportsScreen(
                     val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Not Logged In"
 
                     // 🔥 CAPTURE BITMAPS HERE (THIS WAS MISSING)
-                    val pieBitmap: Bitmap? = pieChartView?.let {
+                    val pieBitmap = pieChartView?.let {
                         ChartCaptureUtils.captureView(it)
                     }
 
-                    val barBitmap: Bitmap? = barChartView?.let {
+                    val barBitmap = barChartView?.let {
                         ChartCaptureUtils.captureView(it)
                     }
 
