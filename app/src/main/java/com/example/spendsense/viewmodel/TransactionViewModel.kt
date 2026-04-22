@@ -20,13 +20,13 @@ class TransactionViewModel : ViewModel() {
 
     private val repo = FirestoreRepository()
 
+
     // ================= STATES =================
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions
     private var lastSelectedGroupId: String? = null
     private var lastModeShared: Boolean = false
     private var lastAlertShownAt = 0L
-
     private val _income = MutableStateFlow(0.0)
     val income: StateFlow<Double> = _income
 
@@ -62,9 +62,11 @@ class TransactionViewModel : ViewModel() {
     private val _currentGroupName = MutableStateFlow("")
     val currentGroupName: StateFlow<String> = _currentGroupName
 
-    private val _currentGroupId = MutableStateFlow("")
-    val currentGroupId: StateFlow<String> = _currentGroupId
+    private val _currentGroupId = mutableStateOf("")
+    val currentGroupId: String get() = _currentGroupId.value
+
     private var currentGroupIdInternal: String? = null
+
 
     // 🔥 FIRESTORE LISTENER
     private var transactionListener: ListenerRegistration? = null
@@ -267,8 +269,12 @@ class TransactionViewModel : ViewModel() {
 
                 clearData()
                 loadAllData()
-                loadGroupInfo(groupId)
-            }
+                repo.getGroup(groupId) { group ->
+                    if (group != null) {
+                        _currentGroupName.value = group.name
+                        _currentGroupCode.value = group.code
+                    }
+                }            }
 
             onResult(groupId)
         }
@@ -278,20 +284,19 @@ class TransactionViewModel : ViewModel() {
     val userGroups: StateFlow<List<Group>> = _userGroups
 
     fun loadGroupInfo(groupId: String) {
+
         val user = FirebaseAuth.getInstance().currentUser ?: return
         val uid = user.uid
-        val email = user.email ?: ""
-
-        val safeEmail = email.replace(".", ",")
 
         repo.getGroup(groupId) { group ->
+
             if (group != null) {
 
-                val isCreator = group.createdBy == uid
                 val isMember = group.members.containsKey(uid)
+                val isActive = group.isActive == true
 
-
-                if (isCreator || isMember) {
+                // ✅ FINAL LOGIC
+                if (isActive && isMember) {
                     _currentGroupName.value = group.name
                     _currentGroupCode.value = group.code
                 } else {
@@ -329,22 +334,22 @@ class TransactionViewModel : ViewModel() {
             currentGroupIdInternal = groupId
             _currentGroupId.value = groupId
 
+            loadGroupInfo(groupId)
+
         } else {
 
-            // 🔥 FORCE PERSONAL MODE CLEANLY
             _isSharedMode.value = false
 
+            // 🔥 CLEAR GROUP COMPLETELY
             currentGroupIdInternal = uid
             _currentGroupId.value = uid
+
+            _currentGroupName.value = "None"
+            _currentGroupCode.value = ""
         }
 
-        // ✅ FIX: CLEAR FIRST
+        // 🔥 CLEAR OLD DATA (PREVENT MIX)
         clearData()
-
-        // ✅ FIX: THEN LOAD GROUP INFO
-        if (enabled && !groupId.isNullOrEmpty()) {
-            loadGroupInfo(groupId)
-        }
 
         // 🔥 RELOAD FROM CORRECT SOURCE
         loadAllData()
@@ -423,7 +428,6 @@ class TransactionViewModel : ViewModel() {
     fun resetBudgetAlert() {
         _budgetAlertEvent.value = false
     }
-
     private fun recalculateBudgetAndAlert() {
 
         val budgetValue = _budget.value
@@ -450,5 +454,28 @@ class TransactionViewModel : ViewModel() {
                 lastAlertShownAt = now
             }
         }
+    }
+    fun deactivateGroup() {
+        val groupId = currentGroupIdInternal ?: return
+
+        repo.updateGroupStatus(
+            groupId,
+            isActive = false
+        )
+
+        _currentGroupName.value = "None"
+        _currentGroupCode.value = ""
+    }
+
+    fun activateGroup() {
+        val groupId = currentGroupIdInternal ?: return
+
+        repo.updateGroupStatus(
+            groupId,
+            isActive = true
+        )
+
+        // 🔥 reload correct data from DB
+        loadGroupInfo(groupId)
     }
 }

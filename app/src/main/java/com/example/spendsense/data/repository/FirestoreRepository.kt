@@ -184,7 +184,8 @@ class FirestoreRepository {
             "code" to code,
             "createdBy" to userId,
             "members" to hashMapOf(userId to true), // ⚠️ keep for now
-            "invitedEmails" to hashMapOf<String, Boolean>()
+            "invitedEmails" to hashMapOf<String, Boolean>(),
+            "isActive" to true
         )
 
         db.collection("groups")
@@ -225,9 +226,14 @@ class FirestoreRepository {
 
                     if (group?.invitedEmails?.containsKey(safeEmail) == true) {
 
+                        val updates = hashMapOf<String, Any>(
+                            "members.$userId" to true,
+                            "invitedEmails.$safeEmail" to FieldValue.delete() // ✅ FIX
+                        )
+
                         db.collection("groups")
                             .document(groupId)
-                            .update("members.$userId", true)
+                            .update(updates)
                             .addOnSuccessListener { onResult(groupId) }
                             .addOnFailureListener { onResult(null) }
 
@@ -275,5 +281,14 @@ class FirestoreRepository {
             .addOnFailureListener {
                 onResult(emptyList())
             }
+    }
+
+    fun updateGroupStatus(
+        groupId: String,
+        isActive: Boolean
+    ) {
+        db.collection("groups")
+            .document(groupId)
+            .update("isActive", isActive)
     }
 }

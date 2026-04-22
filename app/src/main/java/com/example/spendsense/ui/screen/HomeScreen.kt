@@ -58,8 +58,7 @@ fun HomeScreen(
 
     // ✅ MOVE THESE ABOVE (VERY IMPORTANT)
     val isSharedMode by transactionViewModel.isSharedMode.collectAsState()
-    val currentGroupId by transactionViewModel.currentGroupId.collectAsState()
-
+    val currentGroupId = transactionViewModel.currentGroupId
 
 // ✅ SIMPLE + SAFE FILTER (NO EXTRA FIELDS)
     val safeTransactions = remember(transactions, isSharedMode, currentGroupId) {
@@ -74,6 +73,7 @@ fun HomeScreen(
 
 
     LaunchedEffect(isSharedMode, currentGroupId) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
         if (isSharedMode && currentGroupId.isNotEmpty()) {
             transactionViewModel.setSharedMode(true, currentGroupId)
         } else {
@@ -183,8 +183,8 @@ fun HomeScreen(
                 val cardBrush = if (isDark) {
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFF1A2340),  // slightly lighter than bg
-                            Color(0xFF121A30)   // subtle depth
+                            Color(0xFF1A2340),
+                            Color(0xFF121A30)
                         )
                     )
                 } else {
@@ -199,9 +199,9 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .background(cardBrush)   // 🔥 APPLY GRADIENT HERE
+                        .background(cardBrush)
                         .padding(vertical = 20.dp),
-                    contentAlignment = Alignment.Center   // 🔥 CENTER TEXT INSIDE BOX
+                    contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -218,7 +218,7 @@ fun HomeScreen(
 
                         Text(
                             "₹%.2f".format(balance),
-                            fontSize = 36.sp,   // 🔥 BIG SIZE
+                            fontSize = 36.sp,
                             fontWeight = FontWeight.Bold,
                             color = textColor
                         )
@@ -380,7 +380,7 @@ fun HomeScreen(
                             when (selectedChart) {
 
                                 "PIE" ->
-                                        IncomeExpensePieChart(transactions = transactions)
+                                    IncomeExpensePieChart(transactions = transactions)
 
                                 "BAR" -> MonthlyBarChart(transactions)
 

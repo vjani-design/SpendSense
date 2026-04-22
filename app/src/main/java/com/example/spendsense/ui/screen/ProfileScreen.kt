@@ -38,8 +38,6 @@ fun ProfileScreen(
 
     val transactions by transactionViewModel.transactions.collectAsState()
     val isShared by transactionViewModel.isSharedMode.collectAsState()
-    val groupId by transactionViewModel.currentGroupId.collectAsState()
-    val currentGroupId by transactionViewModel.currentGroupId.collectAsState()
     val groups by transactionViewModel.userGroups.collectAsState()
 
     var groupName by remember { mutableStateOf("") }
@@ -102,9 +100,10 @@ fun ProfileScreen(
                                 onCheckedChange = { enabled ->
 
                                     if (enabled) {
+                                        val groupId = transactionViewModel.currentGroupId
 
-                                        if (currentGroupId.isNotEmpty()) {
-                                            transactionViewModel.setSharedMode(true, currentGroupId)
+                                        if (groupId.isNotEmpty()) {
+                                            transactionViewModel.setSharedMode(true, groupId)
 
                                             scope.launch {
                                                 snackbarHostState.showSnackbar("Family Mode ON")
@@ -126,7 +125,7 @@ fun ProfileScreen(
                                 },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFF3B82F6), // blue
+                                    checkedTrackColor = Color(0xFF3B82F6),
 
                                     uncheckedThumbColor = if (isDark) Color.Black else Color.White,
                                     uncheckedTrackColor = if (isDark) Color.White else Color.Black
@@ -417,6 +416,7 @@ fun ProfileScreen(
                                         Button(
                                             onClick = {
                                                 transactionViewModel.setSharedMode(true, g.id)
+                                                transactionViewModel.loadGroupInfo(g.id)   // ✅ ADD THIS //
                                                 showGroupDialog = false
 
                                                 scope.launch {
@@ -432,7 +432,7 @@ fun ProfileScreen(
 
                                         Button(
                                             onClick = {
-                                                transactionViewModel.setSharedMode(false)
+                                                transactionViewModel.deactivateGroup()   // ✅ CORRECT
                                                 showGroupDialog = false
 
                                                 scope.launch {
