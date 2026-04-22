@@ -69,11 +69,23 @@ fun IncomeExpensePieChart(
             chart.data = data
             chart.isDrawHoleEnabled = false
 
-            chart.setEntryLabelColor(
-                if (isDark) Color.WHITE else Color.BLACK
-            )
+            // 🚫 Disable labels inside pie
+            chart.setDrawEntryLabels(false)
 
-            chart.setEntryLabelTextSize(12f)
+// (you already have percent enabled 👍)
+            chart.setUsePercentValues(true)
+
+// ✅ Move labels to legend BELOW
+            val legend = chart.legend
+            legend.isEnabled = true
+            legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.BOTTOM
+            legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
+            legend.orientation = com.github.mikephil.charting.components.Legend.LegendOrientation.HORIZONTAL
+            legend.setDrawInside(false)
+            legend.isWordWrapEnabled = true
+
+            legend.textColor = if (isDark) Color.WHITE else Color.BLACK
+            legend.textSize = 12f
 
             chart.legend.isEnabled = true
             chart.legend.textColor =
