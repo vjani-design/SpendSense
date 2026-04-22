@@ -9,8 +9,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.PercentFormatter
-import com.example.spendsense.ui.theme.ThemeManager   // ✅ ADD THIS IMPORT
 import com.example.spendsense.model.Transaction
+import com.example.spendsense.ui.theme.ThemeManager
 
 @Composable
 fun IncomeExpensePieChart(
@@ -28,73 +28,63 @@ fun IncomeExpensePieChart(
         factory = { context ->
 
             val chart = PieChart(context)
-            onChartReady(chart)
 
-            // ✅ FIXED GROUPING
+            onChartReady(chart)   // ✅ IMPORTANT
+
+            chart.renderer = ArrowPieChartRenderer(
+                chart,
+                chart.animator,
+                chart.viewPortHandler
+            )
+
+            // ✅ Group data
             val categoryMap = transactions
                 .groupBy { tx ->
-                    if (tx.type.equals("INCOME", ignoreCase = true)) {
+                    if (tx.type.equals("INCOME", true)) {
                         "Income - ${tx.description}"
                     } else {
                         "Expense - ${tx.category}"
                     }
                 }
-                .mapValues { entry ->
-                    entry.value.sumOf { it.amount }.toFloat()
-                }
+                .mapValues { it.value.sumOf { tx -> tx.amount }.toFloat() }
 
             val entries = categoryMap.map {
                 PieEntry(it.value, it.key)
             }
 
-            // ✅ COLORS (CORRECT LOGIC)
             val colors = entries.map { entry ->
-                if (entry.label.startsWith("Income", ignoreCase = true))
-                    Color.parseColor("#4CAF50")   // GREEN
+                if (entry.label.startsWith("Income", true))
+                    Color.parseColor("#4CAF50")
                 else
-                    Color.parseColor("#F44336")   // RED
+                    Color.parseColor("#F44336")
             }
 
             val dataSet = PieDataSet(entries, "").apply {
                 this.colors = colors
-                valueTextSize = 14f
-                valueTextColor = if (isDark) Color.WHITE else Color.BLACK
-                sliceSpace = 2f
+                valueTextColor = Color.TRANSPARENT // hide default values
             }
 
             val data = PieData(dataSet)
-            data.setValueFormatter(PercentFormatter(chart))
 
-            chart.setUsePercentValues(true)
-            chart.data = data
-            chart.isDrawHoleEnabled = false
+            chart.apply {
+                setUsePercentValues(true)
+                this.data = data
 
-            // 🚫 Disable labels inside pie
-            chart.setDrawEntryLabels(false)
+                isDrawHoleEnabled = false
 
-// (you already have percent enabled 👍)
-            chart.setUsePercentValues(true)
+                setExtraOffsets(40f, 20f, 40f, 20f)   // ✅ prevents arrows going out
 
-// ✅ Move labels to legend BELOW
-            val legend = chart.legend
-            legend.isEnabled = true
-            legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.BOTTOM
-            legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
-            legend.orientation = com.github.mikephil.charting.components.Legend.LegendOrientation.HORIZONTAL
-            legend.setDrawInside(false)
-            legend.isWordWrapEnabled = true
+                // ✅ Step 3 (IMPORTANT)
+                setDrawEntryLabels(false)
 
-            legend.textColor = if (isDark) Color.WHITE else Color.BLACK
-            legend.textSize = 12f
+                // ❌ Disable legend (we use arrows instead)
+                legend.isEnabled = false
 
-            chart.legend.isEnabled = true
-            chart.legend.textColor =
-                if (isDark) Color.WHITE else Color.BLACK
+                description.isEnabled = false
 
-            chart.description.isEnabled = false
-
-            chart.animateY(800)
-            chart.invalidate()
+                animateY(800)
+                invalidate()
+            }
 
             chart
         }

@@ -10,12 +10,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.spendsense.ui.screen.AddIncomeScreen
 import com.example.spendsense.ui.screen.HomeScreen
+import com.example.spendsense.ui.screen.ReportsScreen
 import com.example.spendsense.ui.screens.AddExpenseScreen
 import com.example.spendsense.ui.screens.BudgetScreen
 import com.example.spendsense.ui.screens.EditTransactionScreen
 import com.example.spendsense.ui.screens.LoginScreen
 import com.example.spendsense.ui.screens.ProfileScreen
-import com.example.spendsense.ui.screens.ReportsScreen
 import com.example.spendsense.ui.screens.SignupScreen
 import com.example.spendsense.ui.screens.SplashScreen
 import com.example.spendsense.viewmodel.TransactionViewModel

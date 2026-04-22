@@ -1,4 +1,4 @@
-package com.example.spendsense.ui.screens
+package com.example.spendsense.ui.screen
 
 import android.graphics.Bitmap
 import android.widget.Toast

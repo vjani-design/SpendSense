@@ -188,11 +188,14 @@ class FirestoreRepository {
         val userName = FirebaseAuth.getInstance().currentUser?.displayName ?: "User"
 
 
+        val user = FirebaseAuth.getInstance().currentUser!!
+
         val group = hashMapOf(
             "id" to groupId,
             "name" to groupName,
             "code" to code,
             "createdBy" to userId,
+            "ownerEmail" to user.email,
             "members" to hashMapOf(
                 userId to mapOf(
                     "name" to userName
@@ -240,9 +243,13 @@ class FirestoreRepository {
 
                     if (group?.invitedEmails?.containsKey(safeEmail) == true) {
 
+                        val user = FirebaseAuth.getInstance().currentUser!!
+
                         val updates = hashMapOf<String, Any>(
-                            "members.$userId" to true,
-                            "invitedEmails.$safeEmail" to FieldValue.delete() // ✅ FIX
+                            "members.${user.uid}" to hashMapOf(
+                                "email" to (user.email ?: "")
+                            ),
+                            "invitedEmails.$safeEmail" to FieldValue.delete()
                         )
 
                         db.collection("groups")

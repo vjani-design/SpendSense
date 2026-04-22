@@ -512,12 +512,10 @@ fun ProfileScreen(
 
                                     Text(g.name, fontWeight = FontWeight.Bold)
                                     Text("Code: ${g.code}")
-                                    Text("Owner: ${g.createdBy}")
-
+                                    Text("Owner: ${g.createdBy.ifEmpty { "Unknown" }}")
                                     Text(
                                         when {
-                                            isOwner -> "👑 Owner"
-                                            isMember -> "👤 Member"
+                                            isMember -> "Member"
                                             else -> "📩 Invited"
                                         },
                                         fontSize = 11.sp
@@ -543,17 +541,19 @@ fun ProfileScreen(
                                     Spacer(Modifier.height(6.dp))
 
                                     // MEMBERS
-                                    if (g.members.isNotEmpty()) {
-                                        Text("Members:")
-                                        g.members.forEach { (_, value) ->
+                                    // MEMBERS
+                                    g.members.forEach { (uid, value) ->
 
-                                            val name = when (value) {
-                                                is Map<*, *> -> value["name"] as? String ?: "User"
-                                                else -> "User"   // fallback for old Boolean data
+                                        val display = when (value) {
+                                            is Map<*, *> -> {
+                                                val email = value["email"] as? String
+                                                email ?: uid   // fallback to UID
                                             }
-
-                                            Text("• $name", fontSize = 12.sp)
+                                            is Boolean -> uid   // old data (true)
+                                            else -> uid
                                         }
+
+                                        Text("• $display", fontSize = 12.sp)
                                     }
 
                                     Spacer(Modifier.height(6.dp))
