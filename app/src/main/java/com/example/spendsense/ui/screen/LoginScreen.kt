@@ -254,30 +254,37 @@ fun LoginScreen(navController: NavController) {
 
                 Spacer(Modifier.height(20.dp))
 
-                TextButton(onClick = { navController.navigate("signup") }) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    TextButton(onClick = { navController.navigate("signup") }) {
+                        Text(
+                            buildAnnotatedString {
+                                append("New to SpendSense? ")
+                                withStyle(
+                                    SpanStyle(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                ) {
+                                    append("Sign up")
+                                }
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
                     Text(
-                        buildAnnotatedString {
-                            append("New to SpendSense? ")
-                            withStyle(
-                                SpanStyle(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            ) {
-                                append("Sign up")
-                            }
-                        },
-                        fontWeight = FontWeight.Bold
+                        "Secure login powered by Firebase",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center // 🔥 important
                     )
                 }
-
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    "Secure login powered by Firebase",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
 
                 Spacer(Modifier.height(20.dp))
             }

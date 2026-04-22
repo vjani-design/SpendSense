@@ -130,22 +130,28 @@ object PdfReportGenerator {
 
         fun centeredChart(bitmap: Bitmap?): Cell {
             return if (bitmap != null) {
+
                 val stream = ByteArrayOutputStream()
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
 
                 val image = Image(ImageDataFactory.create(stream.toByteArray()))
-                    .scaleToFit(300f, 230f)
+                    .setAutoScale(true)   // 🔥 IMPORTANT (auto fit inside cell)
                     .setHorizontalAlignment(HorizontalAlignment.CENTER)
 
                 Cell()
                     .setPadding(10f)
                     .setBorder(SolidBorder(border, 0.5f))
+                    .setTextAlignment(TextAlignment.CENTER)   // 🔥 center content
                     .add(image)
+
             } else {
                 Cell()
                     .setPadding(10f)
                     .setBorder(SolidBorder(border, 0.5f))
-                    .add(Paragraph("No chart available").setTextAlignment(TextAlignment.CENTER))
+                    .add(
+                        Paragraph("No chart available")
+                            .setTextAlignment(TextAlignment.CENTER)
+                    )
             }
         }
 

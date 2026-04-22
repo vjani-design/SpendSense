@@ -58,7 +58,8 @@ fun HomeScreen(
 
     // ✅ MOVE THESE ABOVE (VERY IMPORTANT)
     val isSharedMode by transactionViewModel.isSharedMode.collectAsState()
-    val currentGroupId = transactionViewModel.currentGroupId
+    val currentGroupId by transactionViewModel.currentGroupId.collectAsState()
+
 
 // ✅ SIMPLE + SAFE FILTER (NO EXTRA FIELDS)
     val safeTransactions = remember(transactions, isSharedMode, currentGroupId) {
@@ -73,7 +74,6 @@ fun HomeScreen(
 
 
     LaunchedEffect(isSharedMode, currentGroupId) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
         if (isSharedMode && currentGroupId.isNotEmpty()) {
             transactionViewModel.setSharedMode(true, currentGroupId)
         } else {

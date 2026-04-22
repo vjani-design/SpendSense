@@ -20,13 +20,13 @@ class TransactionViewModel : ViewModel() {
 
     private val repo = FirestoreRepository()
 
-
     // ================= STATES =================
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions
     private var lastSelectedGroupId: String? = null
     private var lastModeShared: Boolean = false
     private var lastAlertShownAt = 0L
+
     private val _income = MutableStateFlow(0.0)
     val income: StateFlow<Double> = _income
 
@@ -62,11 +62,9 @@ class TransactionViewModel : ViewModel() {
     private val _currentGroupName = MutableStateFlow("")
     val currentGroupName: StateFlow<String> = _currentGroupName
 
-    private val _currentGroupId = mutableStateOf("")
-    val currentGroupId: String get() = _currentGroupId.value
-
+    private val _currentGroupId = MutableStateFlow("")
+    val currentGroupId: StateFlow<String> = _currentGroupId
     private var currentGroupIdInternal: String? = null
-
 
     // 🔥 FIRESTORE LISTENER
     private var transactionListener: ListenerRegistration? = null
@@ -290,11 +288,10 @@ class TransactionViewModel : ViewModel() {
             if (group != null) {
 
                 val isCreator = group.createdBy == uid
-                val isInvited = group.invitedEmails.containsKey(safeEmail)
                 val isMember = group.members.containsKey(uid)
 
-                // 🔒 ONLY SHOW DATA IF USER HAS ACCESS
-                if ((isCreator || isInvited) && isMember) {
+
+                if (isCreator || isMember) {
                     _currentGroupName.value = group.name
                     _currentGroupCode.value = group.code
                 } else {
@@ -332,8 +329,6 @@ class TransactionViewModel : ViewModel() {
             currentGroupIdInternal = groupId
             _currentGroupId.value = groupId
 
-            loadGroupInfo(groupId)
-
         } else {
 
             // 🔥 FORCE PERSONAL MODE CLEANLY
@@ -343,8 +338,13 @@ class TransactionViewModel : ViewModel() {
             _currentGroupId.value = uid
         }
 
-        // 🔥 CLEAR OLD DATA (PREVENT MIX)
+        // ✅ FIX: CLEAR FIRST
         clearData()
+
+        // ✅ FIX: THEN LOAD GROUP INFO
+        if (enabled && !groupId.isNullOrEmpty()) {
+            loadGroupInfo(groupId)
+        }
 
         // 🔥 RELOAD FROM CORRECT SOURCE
         loadAllData()
@@ -423,6 +423,7 @@ class TransactionViewModel : ViewModel() {
     fun resetBudgetAlert() {
         _budgetAlertEvent.value = false
     }
+
     private fun recalculateBudgetAndAlert() {
 
         val budgetValue = _budget.value

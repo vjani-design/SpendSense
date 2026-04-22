@@ -38,6 +38,8 @@ fun ProfileScreen(
 
     val transactions by transactionViewModel.transactions.collectAsState()
     val isShared by transactionViewModel.isSharedMode.collectAsState()
+    val groupId by transactionViewModel.currentGroupId.collectAsState()
+    val currentGroupId by transactionViewModel.currentGroupId.collectAsState()
     val groups by transactionViewModel.userGroups.collectAsState()
 
     var groupName by remember { mutableStateOf("") }
@@ -100,10 +102,9 @@ fun ProfileScreen(
                                 onCheckedChange = { enabled ->
 
                                     if (enabled) {
-                                        val groupId = transactionViewModel.currentGroupId
 
-                                        if (groupId.isNotEmpty()) {
-                                            transactionViewModel.setSharedMode(true, groupId)
+                                        if (currentGroupId.isNotEmpty()) {
+                                            transactionViewModel.setSharedMode(true, currentGroupId)
 
                                             scope.launch {
                                                 snackbarHostState.showSnackbar("Family Mode ON")

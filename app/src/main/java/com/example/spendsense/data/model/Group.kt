@@ -6,5 +6,6 @@ data class Group(
     val code: String = "",
     val createdBy: String = "",
     val members: Map<String, Boolean> = emptyMap(),
-    val invitedEmails: Map<String, Boolean> = emptyMap()
+    val invitedEmails: Map<String, Boolean> = emptyMap(),
+    val isActive: Boolean = true
 )
