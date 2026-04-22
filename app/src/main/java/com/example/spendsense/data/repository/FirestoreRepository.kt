@@ -35,16 +35,20 @@ class FirestoreRepository {
 
     fun addPersonalTransaction(userId: String, transaction: Transaction) {
 
+        val data = mapOf(
+            "amount" to transaction.amount,
+            "category" to transaction.category,
+            "type" to transaction.type.uppercase(),
+            "description" to transaction.description,
+            "paymentMethod" to transaction.paymentMethod,
+            "date" to (transaction.date ?: Timestamp.now()),
+            "createdAt" to Timestamp.now()
+        )
+
         db.collection("users")
             .document(userId)
             .collection("transactions")
-            .add(
-                transaction.copy(
-                    type = transaction.type.uppercase(),
-                    date = transaction.date ?: Timestamp.now(),
-                    createdAt = Timestamp.now()
-                )
-            )
+            .add(data)
     }
 
     fun updatePersonalTransaction(userId: String, transaction: Transaction) {
@@ -90,17 +94,21 @@ class FirestoreRepository {
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
+        val data = mapOf(
+            "amount" to transaction.amount,
+            "category" to transaction.category,
+            "type" to transaction.type.uppercase(),
+            "description" to transaction.description,
+            "paymentMethod" to transaction.paymentMethod,
+            "date" to (transaction.date ?: Timestamp.now()),
+            "createdAt" to Timestamp.now(),
+            "paidBy" to uid   // keep ONLY if needed
+        )
+
         db.collection("groups")
             .document(groupId)
             .collection("transactions")
-            .add(
-                transaction.copy(
-                    paidBy = uid,
-                    type = transaction.type.uppercase(),
-                    date = transaction.date ?: Timestamp.now(),
-                    createdAt = Timestamp.now()
-                )
-            )
+            .add(data)
     }
 
     fun updateGroupTransaction(groupId: String, transaction: Transaction) {

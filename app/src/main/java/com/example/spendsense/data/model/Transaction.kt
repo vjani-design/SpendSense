@@ -17,14 +17,5 @@ data class Transaction(
     val date: Timestamp? = null,
     val createdAt: Timestamp? = null,
 
-    // group only
-    val paidBy: String? = null,
-    val splitBetween: List<String> = emptyList(),
-
-    // recurring
-    var isRecurring: Boolean = false,
-    var recurrenceType: String? = null,
-    var nextDueDate: Timestamp? = null,
-
     val description: String = ""
 )

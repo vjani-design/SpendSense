@@ -545,8 +545,14 @@ fun ProfileScreen(
                                     // MEMBERS
                                     if (g.members.isNotEmpty()) {
                                         Text("Members:")
-                                        g.members.keys.forEach {
-                                            Text("• $it", fontSize = 12.sp)
+                                        g.members.forEach { (_, value) ->
+
+                                            val name = when (value) {
+                                                is Map<*, *> -> value["name"] as? String ?: "User"
+                                                else -> "User"   // fallback for old Boolean data
+                                            }
+
+                                            Text("• $name", fontSize = 12.sp)
                                         }
                                     }
 
@@ -604,7 +610,7 @@ fun ProfileScreen(
 
                                         Button(
                                             onClick = {
-                                                transactionViewModel.setSharedMode(false)
+                                                transactionViewModel.deactivateGroup()
                                                 showGroupDialog = false
 
                                                 scope.launch {
