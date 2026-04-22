@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.sp
 import com.example.spendsense.model.Transaction
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.spendsense.utils.CurrencyManager
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun TransactionItem(
@@ -33,7 +36,7 @@ fun TransactionItem(
             SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(it)
         } ?: "No Date"
     }
-
+    val currencySymbol by CurrencyManager.currency.collectAsState()
     val amountColor = if (isExpense) Color(0xFFD50000) else Color(0xFF00C853)
     val sign = if (isExpense) "-" else "+"
 
@@ -141,7 +144,7 @@ fun TransactionItem(
             )
 
             Text(
-                text = "₹${transaction.amount}",
+                text = "$currencySymbol${transaction.amount}",
                 fontSize = 20.sp, // 🔥 18 → 20
                 fontWeight = FontWeight.Bold,
                 color = amountColor

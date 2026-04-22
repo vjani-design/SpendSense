@@ -29,7 +29,9 @@ object PdfReportGenerator {
         mostSpent: String,
         pieBitmap: Bitmap?,
         barBitmap: Bitmap?,
-        userEmail: String
+        userEmail: String,
+        currencySymbol: String
+
     ): Uri? {
 
         val resolver = context.contentResolver
@@ -117,10 +119,10 @@ object PdfReportGenerator {
                 )
         }
 
-        summary.addCell(card("Balance", "₹%.2f".format(balance), blue))
-        summary.addCell(card("Income", "₹%.2f".format(income), green))
-        summary.addCell(card("Expense", "₹%.2f".format(expense), red))
-        summary.addCell(card("Budget", "₹%.2f".format(budget), blue))
+        summary.addCell(card("Balance", "$currencySymbol%.2f".format(balance), blue))
+        summary.addCell(card("Income", "$currencySymbol%.2f".format(income), green))
+        summary.addCell(card("Expense", "$currencySymbol%.2f".format(expense), red))
+        summary.addCell(card("Budget", "$currencySymbol%.2f".format(budget), blue))
 
         document.add(summary)
         document.add(Paragraph("\n"))
@@ -169,7 +171,7 @@ object PdfReportGenerator {
                 .setBorder(SolidBorder(border, 0.5f))
                 .setPadding(12f)
                 .add(Paragraph("Insights").setBold().setFontSize(16f))
-                .add(Paragraph("• You spent ₹%.2f".format(expense)).setFontSize(13f))
+                .add(Paragraph("• You spent $currencySymbol%.2f".format(expense)).setFontSize(13f))
                 .add(Paragraph("• Highest spending: $mostSpent").setFontSize(13f))
                 .add(Paragraph("• Expenses = $percent% of income").setFontSize(13f))
         )
@@ -227,7 +229,7 @@ object PdfReportGenerator {
 
             table.addCell(
                 Cell().setBackgroundColor(bg).add(
-                    Paragraph("₹%.2f".format(t.amount))
+                    Paragraph("$currencySymbol%.2f".format(t.amount))
                         .setFontColor(color)
                         .setTextAlignment(TextAlignment.CENTER)
                 )

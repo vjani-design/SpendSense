@@ -177,13 +177,19 @@ class FirestoreRepository {
 
         val code = (System.currentTimeMillis().toString().takeLast(6) +
                 (100..999).random()).take(6)
+        val userName = FirebaseAuth.getInstance().currentUser?.displayName ?: "User"
+
 
         val group = hashMapOf(
             "id" to groupId,
             "name" to groupName,
             "code" to code,
             "createdBy" to userId,
-            "members" to hashMapOf(userId to true), // ⚠️ keep for now
+            "members" to hashMapOf(
+                userId to mapOf(
+                    "name" to userName
+                )
+            ),
             "invitedEmails" to hashMapOf<String, Boolean>(),
             "isActive" to true
         )

@@ -1,11 +1,43 @@
 package com.example.spendsense.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,11 +48,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.spendsense.ui.components.TransactionItem
+import com.example.spendsense.ui.theme.ThemeManager
+import com.example.spendsense.ui.theme.appBackground
+import com.example.spendsense.ui.theme.appGlass
 import com.example.spendsense.viewmodel.TransactionViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.example.spendsense.ui.theme.*
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -31,6 +67,8 @@ fun ProfileScreen(
     val currentGroupCode by transactionViewModel.currentGroupCode.collectAsState()
     val isDark = ThemeManager.isDarkTheme
     val user = FirebaseAuth.getInstance().currentUser
+    var incomeRange by remember { mutableStateOf("") }
+    var currency by remember { mutableStateOf("₹ INR") }
 
     val context = LocalContext.current
     val sharedPref = context.getSharedPreferences("user_session", 0)
@@ -50,7 +88,19 @@ fun ProfileScreen(
 
     LaunchedEffect(user?.uid) {
         if (user != null) {
+
             transactionViewModel.loadUserGroups()
+
+            val uid = user.uid
+
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener {
+                    incomeRange = it.getString("incomeRange") ?: ""
+                    currency = it.getString("currency") ?: "₹ INR"
+                }
         }
     }
 
@@ -77,7 +127,129 @@ fun ProfileScreen(
                     Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
                         Column {
                             Text("👤 Profile", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                            Text(user?.email ?: savedEmail ?: "No email found")                        }
+                            Text(user?.email ?: savedEmail ?: "No email found")
+                        }
+                    }
+                }
+                item {
+                    Box(Modifier.fillMaxWidth().appGlass().padding(16.dp)) {
+                        Column {
+
+                            Text("💰 Financial Info", fontWeight = FontWeight.Bold)
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // ================= INCOME DROPDOWN =================
+                            val incomeOptions = listOf(
+                                "Below 10k",
+                                "10k - 25k",
+                                "25k - 50k",
+                                "50k - 1L",
+                                "1L - 2L",
+                                "Above 2L"
+                            )
+
+                            var incomeExpanded by remember { mutableStateOf(false) }
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+
+                                OutlinedTextField(
+                                    value = incomeRange,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Income Range") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable { incomeExpanded = true }
+                                )
+
+                                DropdownMenu(
+                                    expanded = incomeExpanded,
+                                    onDismissRequest = { incomeExpanded = false }
+                                ) {
+                                    incomeOptions.forEach { option ->
+                                        DropdownMenuItem(
+                                            text = { Text(option) },
+                                            onClick = {
+                                                incomeRange = option
+                                                incomeExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            // ================= CURRENCY DROPDOWN =================
+                            val currencyOptions = listOf("₹ INR", "$ USD", "€ EUR", "£ GBP")
+
+                            var currencyExpanded by remember { mutableStateOf(false) }
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+
+                                OutlinedTextField(
+                                    value = currency,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Currency") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable { currencyExpanded = true }
+                                )
+
+                                DropdownMenu(
+                                    expanded = currencyExpanded,
+                                    onDismissRequest = { currencyExpanded = false }
+                                ) {
+                                    currencyOptions.forEach { option ->
+                                        DropdownMenuItem(
+                                            text = { Text(option) },
+                                            onClick = {
+                                                currency = option
+                                                currencyExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+
+                            // ================= SAVE BUTTON =================
+                            Button(
+                                onClick = {
+                                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+
+                                    val symbol = currency.split(" ")[0]
+
+                                    FirebaseFirestore.getInstance()
+                                        .collection("users")
+                                        .document(uid)
+                                        .set(
+                                            mapOf(
+                                                "incomeRange" to incomeRange,
+                                                "currency" to currency
+                                            ),
+                                            com.google.firebase.firestore.SetOptions.merge()
+                                        )
+
+                                    // 🔥 Apply globally
+                                    com.example.spendsense.utils.CurrencyManager.setCurrency(symbol)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Save")
+                            }
+                        }
                     }
                 }
 
@@ -432,7 +604,7 @@ fun ProfileScreen(
 
                                         Button(
                                             onClick = {
-                                                transactionViewModel.deactivateGroup()   // ✅ CORRECT
+                                                transactionViewModel.setSharedMode(false)
                                                 showGroupDialog = false
 
                                                 scope.launch {

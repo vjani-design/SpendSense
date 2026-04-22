@@ -7,6 +7,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import com.example.spendsense.utils.CurrencyManager
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,6 +56,7 @@ fun HomeScreen(
     val budgetAlert by transactionViewModel.budgetAlert.collectAsState()
     val budgetAlertEvent by transactionViewModel.budgetAlertEvent.collectAsState()
     val budgetPercent by transactionViewModel.budgetUsedPercent.collectAsState()
+    val currencySymbol by CurrencyManager.currency.collectAsState()
 
     // ✅ MOVE THESE ABOVE (VERY IMPORTANT)
     val isSharedMode by transactionViewModel.isSharedMode.collectAsState()
@@ -217,7 +219,7 @@ fun HomeScreen(
                         Spacer(Modifier.height(6.dp))
 
                         Text(
-                            "₹%.2f".format(balance),
+                            "$currencySymbol%.2f".format(balance),
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Bold,
                             color = textColor
@@ -236,7 +238,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Income: ₹$income",
+                            "Income: $currencySymbol$income",
                             color = Color(0xFF00C853),
                             fontWeight = FontWeight.Bold
                         )
@@ -252,7 +254,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Expense: ₹$expense",
+                            "Expense: $currencySymbol$expense",
                             color = Color(0xFFD50000),
                             fontWeight = FontWeight.Bold
                         )
@@ -286,8 +288,7 @@ fun HomeScreen(
 
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                     Text("Set Budget", color = textColor, fontWeight = FontWeight.Bold)
-                    Text("₹$budget", color = textColor, fontWeight = FontWeight.Bold)
-                }
+                    Text("$currencySymbol$budget", color = textColor, fontWeight = FontWeight.Bold)                }
 
                 Spacer(Modifier.height(10.dp))
 

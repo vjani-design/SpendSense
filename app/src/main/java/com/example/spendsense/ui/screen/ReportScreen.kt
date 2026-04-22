@@ -20,6 +20,8 @@ import com.example.spendsense.ui.components.MonthlyBarChart
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.PieChart
 import com.google.firebase.auth.FirebaseAuth
+import com.example.spendsense.utils.CurrencyManager
+import androidx.compose.runtime.collectAsState
 
 @Composable
 fun ReportsScreen(
@@ -29,12 +31,12 @@ fun ReportsScreen(
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onBackground
+    val currencySymbol by CurrencyManager.currency.collectAsState()
     val budget by transactionViewModel.budget.collectAsState()
     val transactions by transactionViewModel.transactions.collectAsState()
     val income by transactionViewModel.income.collectAsState()
     val expense by transactionViewModel.expense.collectAsState()
     val balance by transactionViewModel.balance.collectAsState()
-
     var pieChartView by remember { mutableStateOf<PieChart?>(null) }
     var barChartView by remember { mutableStateOf<BarChart?>(null) }
 
@@ -59,9 +61,9 @@ fun ReportsScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Income: ₹$income", color = textColor)
-                Text("Expense: ₹$expense", color = textColor)
-                Text("Balance: ₹$balance", color = textColor)
+                Text("Income: $currencySymbol$income", color = textColor)
+                Text("Expense: $currencySymbol$expense", color = textColor)
+                Text("Balance: $currencySymbol$balance", color = textColor)
                 Text("Most Spent: $mostSpent", color = textColor)
                 Text("Transactions: ${transactions.size}", color = textColor)
             }
@@ -122,7 +124,9 @@ fun ReportsScreen(
                             mostSpent = mostSpent,
                             pieBitmap = pieBitmap,
                             barBitmap = barBitmap,
-                            userEmail = userEmail
+                            userEmail = userEmail,
+                            currencySymbol = currencySymbol
+
                         )
 
                         if (uri != null) {
