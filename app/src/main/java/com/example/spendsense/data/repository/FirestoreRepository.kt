@@ -21,13 +21,32 @@ class FirestoreRepository {
             .document(userId)
             .collection("transactions")
             .orderBy("date", Query.Direction.DESCENDING)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, error ->
 
-                val list = snap?.documents?.mapNotNull { doc ->
-                    doc.toObject(Transaction::class.java)?.apply {
-                        id = doc.id   // 🔥 attach document ID
+                if (error != null) {
+                    println("FIRESTORE ERROR: ${error.message}")
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+
+                if (snap == null) {
+                    println("SNAPSHOT NULL")
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val list = snap.documents.mapNotNull { doc ->
+                    try {
+                        doc.toObject(Transaction::class.java)?.apply {
+                            id = doc.id
+                        }
+                    } catch (e: Exception) {
+                        println("PARSE ERROR: ${e.message}")
+                        null
                     }
-                } ?: emptyList()
+                }
+
+                println("TRANSACTION COUNT = ${list.size}")
 
                 onResult(list)
             }
@@ -78,13 +97,32 @@ class FirestoreRepository {
             .document(groupId)
             .collection("transactions")
             .orderBy("date", Query.Direction.DESCENDING)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, error ->
 
-                val list = snap?.documents?.mapNotNull { doc ->
-                    doc.toObject(Transaction::class.java)?.apply {
-                        id = doc.id
+                if (error != null) {
+                    println("FIRESTORE ERROR: ${error.message}")
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+
+                if (snap == null) {
+                    println("SNAPSHOT NULL")
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val list = snap.documents.mapNotNull { doc ->
+                    try {
+                        doc.toObject(Transaction::class.java)?.apply {
+                            id = doc.id
+                        }
+                    } catch (e: Exception) {
+                        println("PARSE ERROR: ${e.message}")
+                        null
                     }
-                } ?: emptyList()
+                }
+
+                println("TRANSACTION COUNT = ${list.size}")
 
                 onResult(list)
             }
